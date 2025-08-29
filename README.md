@@ -295,7 +295,7 @@ Define the time in seconds, `Alarm volume increase duration`, the alarm must sou
 
 ### SH1107 SPI/I2C
 
-Some SH1107 display modules support both I2C and SPI interface modes (one mode at a time). To switch to SPI mode, follow [this](https://simple-circuit.com/interfacing-arduino-sh1107-oled-display-i2c-mode/) tutorial and review [this](https://github.com/Skons/SOAS/issues/2#issue-3286014273) post.
+Some SH1107 display modules support both I2C and SPI interface modes (one mode at a time). To switch to IIC mode, follow [this](https://simple-circuit.com/interfacing-arduino-sh1107-oled-display-i2c-mode/) tutorial and review [this](https://github.com/Skons/SOAS/issues/2#issue-3286014273) post.
 
 ## Alarm volume increase
 
