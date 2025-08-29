@@ -73,7 +73,7 @@ Connect all dupont cables corresponding the schema's below:
 
 | MAX98357a | ESP32   |
 |-----------|---------|
-| LRC       | GPIO3   |
+| LRC       | GPIO12  |
 | BLCK      | GPIO1   |
 | DIN       | GPIO2   |
 | GND       | GND     |
@@ -102,7 +102,7 @@ substitutions:
   sun_longitude: 4.89°
   i2c_sda: GPIO48
   i2c_scl: GPIO47
-  i2s_lrclk_pin: GPIO3
+  i2s_lrclk_pin: GPIO12
   i2s_bclk_pin: GPIO1
   i2s_dout_pin: GPIO2
   pin_a: GPIO9
@@ -314,6 +314,7 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 ## Changelog
 
 ### 2025.x.x.x
+- **BREAKING** Avoid using GPIO3, which is a JTAG strapping pin. You must resolder the wire from MAX98357a LRC <-> from ESP32 GPIO3 to GPIO12 for audio to work again.
 - Configurable max alarm off button time
 - write preferences (like alarm_on) immediately to flash when alarm goes off (alarm_on set to true).
   If the clock would crash, it will restore alarm_on (true) and restores the alarm.
