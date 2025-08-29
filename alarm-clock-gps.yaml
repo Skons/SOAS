@@ -16,3 +16,5 @@ gps:
     name: "Longitude"
   altitude:
     name: "Altitude"
+  satellites:
+    name: "Sattelites"
