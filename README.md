@@ -27,6 +27,7 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 * Volume increase of the alarm after a defined time of alarming
 * Local file as fallback when internet is not available
 * Time sync with GPS for when internet is not available (Optional)
+* Time backup with DS1307 rtc module internet is not available (Optional)
 * Ability to switch off display completely
   - Display is switched on every alarm.
 * Ability to "Display on/off automatically"
@@ -181,6 +182,37 @@ packages:
     files: [alarm-clock-soas.yaml, alarm-clock-gps.yml]
 ```
 
+### Module DS1307 (for RTC backup with non rechargeable CR2032 coin cell)
+
+With the DS1307 rtc module the clock keeps the time, also when power is lost.
+
+Here is a link to aliexpress to such an module: (https://de.aliexpress.com/item/1005006984190682.html) ~ €0,50/Pc
+I got mine from amazon, but they are the same. Just look at the pictures.
+
+**ATTENTION**
+Those modules are usally designed to work with rechargeable LIR2032 batterys and on 5V only (DS1307 spec is 4,5V - 5,5V).
+You must modify the DS1307 module in order to work with non rechargable and cheap CR2032 coin cells and the 3V3 IIC of the ESP32.
+On some ESP32-S3 PCB's you have to bridge a jumper to get +5V on the ESP out pin!
+Meassure the voltage before connect it, it should be arround ~5V (sometimes 4,7 because there is a diode in series, which is ok).
+[Pictures of modifications in images folder starting with ds1307_...](images/)
+
+| DS1307   | ESP32       |
+|----------|-------------|
+| SCL      | GPIO47      |
+| SDA      | GPIO48      |
+| VCC      | 5V          | 
+| GND      | GND         |
+| 3V3 wire | 3V3         |
+
+
+Replace the `packages:` with
+``` yaml
+packages:
+  remote_package_files:
+    url: https://github.com/skons/soas
+    files: [alarm-clock-soas.yaml, alarm-clock-ds1307.yaml]
+```
+
 ## Usage
 
 The rotary button is the button for accessing and editing configuration. When on a page, and there is no blinking of a configuration, you will automatically be redirected to the time page after 5 seconds of inactivity. The edit mode, blinking of a configuration, needs to be exited to return back to the time page. Entering and exiting the edit mode is done by single clicking the rotary button.
@@ -309,6 +341,7 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 - Write preferences (like alarm_on) immediately to flash when alarm goes off (alarm_on set to true).
   If the clock would crash, it will restore alarm_on (true) and restores the alarm.
 - Optional GPS time sync with NEO-6M
+- Optional RTC time sync/backup with DS1307
 - Night mode switch with Night mode automatic switch
 - `time_sync_done` is now set by checking the local clock
 - `check_alarms` script is now single mode
