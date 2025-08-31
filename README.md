@@ -17,7 +17,7 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 ## Features
 * Alarm based on time.
 * Different display modes so there is more or less light emitted by the clock.
-* Contrast based on day or night.
+* Contrast based on day or night with smooth dimming
 * 4 Home Assistant integrated switches that switch based on the alarm time, alarm does not have to sound. These switches can be switched manually on the clock itself.
 * Customizable sleep timer.
 * Customizable snooze timer.
@@ -27,7 +27,12 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 * Volume increase of the alarm after a defined time of alarming
 * Local file as fallback when internet is not available
 * Time sync with GPS for when internet is not available (Optional)
-
+* Ability to switch off display completely
+  - Display is switched on every alarm.
+* Ability to "Display on/off automatically"
+  - Display is switched on when rotary or alarm button input or when alarm fires
+  - Display is switched off after 10 seconds of no rotary or alarm button input.
+    It will not switch off when alarm_on, snooze_on or music_on
 ## Requirements
 * < €25,-
 * 3d printer (not included in the price)
@@ -307,6 +312,8 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 - Night mode switch with Night mode automatic switch
 - `time_sync_done` is now set by checking the local clock
 - `check_alarms` script is now single mode
+- Display on switch with Display on/off automatically switch
+- Smooth display dimming on contrast change
 - Documentation updates
 
 ### 2025.8.25.2
