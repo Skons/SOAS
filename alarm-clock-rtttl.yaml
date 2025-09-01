@@ -1,0 +1,128 @@
+output:
+  - platform: ledc
+    pin: $buzzer_pin
+    id: rtttl_out
+
+
+rtttl:
+  id: my_rtttl
+  output: rtttl_out
+  gain: $buzzer_gain
+  on_finished_playback:
+    - logger.log: 'Buzzer song ended!'
+
+api:
+  services:
+    - service: tune
+      variables:
+        tune: string
+      then:
+        - rtttl.play:
+            rtttl: !lambda 'return tune;'
+
+select:
+  - platform: template
+    name: Alarm buzzer sound
+    id: alarm_buzzer_sound
+    optimistic: true
+    restore_value: true
+    set_action:
+      - rtttl.stop
+      - rtttl.play:
+          id: my_rtttl
+          rtttl: !lambda "return x;"
+    internal: true
+  - platform: template
+    name: Alarm buzzer name
+    id: alarm_buzzer_name
+    optimistic: true
+    restore_value: true
+    set_action:
+      - lambda: |-
+          ESP_LOGD("alarm_buzzer_name", "Option %s is selected", x.c_str());
+          auto index = id(alarm_buzzer_name).index_of(x.c_str());
+          if (index.has_value()) { //selected value has an index
+            ESP_LOGD("alarm_buzzer_name", "'%s' is at index: %d", x.c_str(), index.value());
+            auto option = id(alarm_buzzer_sound).at(index.value());
+            if (option.has_value()) { //alarm_buzzer_sound index has been found based on alarm_buzzer_name
+              auto value = option.value();
+              ESP_LOGD("alarm_buzzer_name", "Setting sound %s at alarm_buzzer_sound", value.c_str());
+
+              auto alarmBuzzerSound = id(alarm_buzzer_sound).make_call();
+              alarmBuzzerSound.set_option(value.c_str());
+              alarmBuzzerSound.perform();
+            } else {
+              ESP_LOGE("alarm_buzzer_name", "Index %d does not exist at alarm_buzzer_sound", index.has_value());
+            }
+          } else {
+            ESP_LOGE("alarm_buzzer_name", "There is no option '%s'", x.c_str());
+          }
+
+switch:
+  - name: "Local alarm on buzzer"
+    platform: template
+    id: local_alarm_buzzer
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+  - id: !remove alarm_on_local
+  - name: "Alarm on local"
+    platform: template
+    id: alarm_on_local
+    optimistic: true
+    internal: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_off:
+      then:
+        - if:
+            condition:
+              switch.is_on: local_alarm_buzzer
+            then:
+              - rtttl.stop
+            else:
+              - mixer_speaker.apply_ducking:
+                  id: media_spk_mixer_input
+                  decibel_reduction: 0
+                  duration: 2.0s
+    on_turn_on:
+      then:
+        - switch.turn_on: display_on
+        - if:
+            condition:
+              switch.is_on: local_alarm_buzzer
+            then:
+              - while:
+                  condition:
+                    switch.is_on: alarm_on_local
+                  then:
+                      # Play the alarm sound on buzzer
+                    - lambda: |-
+                        auto selectState = id(alarm_buzzer_sound).state.c_str();
+                        id(my_rtttl).play(selectState);
+                        ESP_LOGD("buzzer_alarm", "Playing buzzer sound %s", selectState);
+                      # Wait until the alarm sound starts playing
+                    - wait_until:
+                        rtttl.is_playing:
+                      # Wait until the alarm sound stops playing
+                    - wait_until:
+                        not:
+                          rtttl.is_playing:
+            else:
+              - mixer_speaker.apply_ducking:
+                  id: media_spk_mixer_input
+                  decibel_reduction: 20
+                  duration: 0.0s
+              - while:
+                  condition:
+                    switch.is_on: alarm_on_local
+                  then:
+                      # Play the alarm sound as an announcement
+                    - media_player.speaker.play_on_device_media_file:
+                        media_file: alarm_sound
+                        announcement: true
+                      # Wait until the alarm sound starts playing
+                    - wait_until:
+                        media_player.is_announcing:
+                      # Wait until the alarm sound stops playing
+                    - wait_until:
+                        not:
+                          media_player.is_announcing:

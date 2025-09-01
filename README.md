@@ -33,6 +33,8 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
   - Display is switched on when rotary or alarm button input or when alarm fires
   - Display is switched off after 10 seconds of no rotary or alarm button input.
     It will not switch off when alarm_on, snooze_on or music_on
+* Local buzzer playback with service and as fallback when internet is not available (Optional)
+
 ## Requirements
 * < €25,-
 * 3d printer (not included in the price)
@@ -181,6 +183,74 @@ packages:
     files: [alarm-clock-soas.yaml, alarm-clock-gps.yml]
 ```
 
+### Buzzer (to keep up nostaliga vibes :-)
+
+With an added buzzer, you can use this to play nostalgia rtttl sound (like on older phones or pc system speaker).
+You can optinally use it as an fallback when internet is down with switch "Local alarm on buzzer".
+
+Here is a link to aliexpress for such an speaker: (https://de.aliexpress.com/item/1005009658713423.html) ~ €0,16/Pc
+I got random ones from amazon, the are working flawlessly.
+
+
+| BUZZER | ESP32       |
+|--------|-------------|
+| RED    | GPIO21      |
+| BLACK  | GND         |
+
+Add this to the `substitutions:`
+
+``` yaml
+  #Add this for the buzzer
+  buzzer_pin: GPIO21
+  buzzer_gain: 50%
+```
+The buzzer_gain value did not work for me, i have just added an 56 Ohm series resistor to make it quiter.
+
+Add this to `select:` (after your stream urls)
+
+``` yaml
+    #buzzer sounds - do not use too much, this crash SOAS
+  - id: !extend alarm_buzzer_sound
+    options:
+      - "Mario:d=4,o=5,b=100:16e6,16e6,32p,8e6,16c6,8e6,8g6,8p,8g,8p,8c6,16p,8g,16p,8e,16p,8a,8b,16a#,8a,16g.,16e6,16g6,8a6,16f6,8g6,8e6,16c6,16d6,8b,16p,8c6,16p,8g,16p,8e,16p,8a,8b,16a#,8a,16g.,16e6,16g6,8a6,16f6,8g6,8e6,16c6,16d6,8b,8p,16g6,16f#6,16f6,16d#6,16p,16e6,16p,16g#,16a,16c6,16p,16a,16c6,16d6,8p,16g6,16f#6,16f6,16d#6,16p,16e6,16p,16c7,16p,16c7,16c7,p,16g6,16f#6,16f6,16d#6,16p,16e6,16p,16g#,16a,16c6,16p,16a,16c6,16d6,8p,16d#6,8p,16d6,8p,16c6"
+      - "The Simpsons:d=4,o=5,b=160:c.6,e6,f#6,8a6,g.6,e6,c6,8a,8f#,8f#,8f#,2g,8p,8p,8f#,8f#,8f#,8g,a#.,8c6,8c6,8c6,c6"
+      - "Two short tones:d=4,o=5,b=100:16e6,16e6"
+
+  - id: !extend alarm_buzzer_name
+    options:
+      - "Mario"
+      - "The Simpsons"
+      - "Two short tones"
+```
+
+For additional tunes, see 'alarm-clock-rtttl-additional-tunes.txt'. You can add them above.
+Do not use too much, this crash SOAS.
+
+You can use the HA service "tune" to play directly on the buzzer of the device, like this example:
+
+``` yaml
+action: esphome.soas_tune
+data:
+  tune: Two short tones:d=4,o=5,b=100:16e6,16e6
+```
+
+Replace the `packages:` for JUST rtttl support with:
+``` yaml
+packages:
+  remote_package_files:
+    url: https://github.com/skons/soas
+    files: [alarm-clock-soas.yaml, alarm-clock-rtttl.yaml]
+```
+
+You can combine the features like you want, like rtttl & ds1307
+Replace the `packages:` for rtttl & ds1307 support with:
+``` yaml
+packages:
+  remote_package_files:
+    url: https://github.com/skons/soas
+    files: [alarm-clock-soas.yaml, alarm-clock-rtttl.yaml, alarm-clock-ds1307.yaml]
+```
+
 ## Usage
 
 The rotary button is the button for accessing and editing configuration. When on a page, and there is no blinking of a configuration, you will automatically be redirected to the time page after 5 seconds of inactivity. The edit mode, blinking of a configuration, needs to be exited to return back to the time page. Entering and exiting the edit mode is done by single clicking the rotary button.
@@ -314,6 +384,7 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 - `check_alarms` script is now single mode
 - Display on switch with Display on/off automatically switch
 - Smooth display dimming on contrast change
+- Optional local buzzer playback with service and as fallback when internet is not available
 - Documentation updates
 
 ### 2025.8.25.2
