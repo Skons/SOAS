@@ -1058,6 +1058,32 @@ switch:
     on_turn_off:
       then:
         - script.stop: display_off_script
+  - name: "Display off, on snooze allowed"
+    platform: template
+    id: display_off_on_snooze_allowed
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      then:
+        - script.execute:
+            id: display_off_script
+    on_turn_off:
+      then:
+        - script.execute:
+            id: display_off_script
+  - name: "Display off, on music allowed"
+    platform: template
+    id: display_off_on_music_allowed
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      then:
+        - script.execute:
+            id: display_off_script
+    on_turn_off:
+      then:
+        - script.execute:
+            id: display_off_script
   - name: "Alarm enabled"
     platform: template
     id: alarm_enabled
@@ -2235,9 +2261,17 @@ script:
             and:
               - switch.is_on: display_on_off_automatically
               - switch.is_off: alarm_on
-              - switch.is_off: snooze_on
-              - switch.is_off: music_on
               - lambda: 'return (id(time_sync_done) == true);'
+              - or:
+                  - and:
+                      - switch.is_on: display_off_on_snooze_allowed
+                      - switch.is_on: snooze_on
+                  - switch.is_off: snooze_on
+              - or:
+                  - and:
+                      - switch.is_on: display_off_on_music_allowed
+                      - switch.is_on: music_on
+                  - switch.is_off: music_on
           then:
             - switch.turn_off: display_on
   - id: set_ha_0_trigger_time_script
