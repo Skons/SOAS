@@ -139,6 +139,9 @@ globals:
   - id: contrast_target
     type: float
     initial_value: '1.0'
+  - id: contrast_force
+    type: float
+    initial_value: '-1.0'
 
 interval:
   - interval: 10s
@@ -657,6 +660,18 @@ sensor:
                           - script.execute:
                               id: rotary_encoder_script
                               clockwise: true
+  - platform: template
+    id: contrast_force_percent
+    name: "Contrast Force Percent"
+    unit_of_measurement: "%"
+    icon: mdi:contrast
+    update_interval: 10s
+    lambda: |-
+      if (id(contrast_force) < 0.0f) {
+        return NAN;
+      } else {
+        return id(contrast_force) * 100.0f;
+      }
 
 binary_sensor:
   - name: "Alarm off"
@@ -1346,10 +1361,18 @@ display:
             timeFont20 = id(robotothin20);
           }
 
-          if (!is_night_mode) {
-            id(contrast_target) = id(screen_contrast_day).state / 100.0f;
+          //set contrast to force, day or night value. Force always has priority.
+          //This way a module (like gl5516) can overwrite contrast
+          if (id(contrast_force) < 0.0) {
+            //screen contrast not forced by module, use day or night contrast based on night mode
+            if (!is_night_mode) {
+              id(contrast_target) = id(screen_contrast_day).state / 100.0f;
+            } else {
+              id(contrast_target) = id(screen_contrast_night).state / 100.0f;
+            }
           } else {
-            id(contrast_target) = id(screen_contrast_night).state / 100.0f;
+            //screen contrast forced by any module (like gl5516)
+            id(contrast_target) = id(contrast_force);
           }
           id(smooth_contrast).execute();
 

@@ -17,6 +17,7 @@
 		* [GPS (Optional)](#GPSOptional)
 		* [DS1307 (Optional)](#DS1307Optional)
 		* [RTTTL (Optional)](#RTTTLOptional)
+		* [GL5516 brightness sensor (Optional)](#GL5516Optional)        
 * [Usage](#Usage)
 	* [Time page](#Timepage)
 		* [Flathead short press](#Flatheadshortpress)
@@ -66,6 +67,7 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 * Alarm based on time.
 * Different display modes so there is more or less light emitted by the clock.
 * Contrast based on day or night with smooth dimming
+* Contrast based on brightness in the room (Optional)
 * 4 Home Assistant integrated switches that switch based on the alarm time, alarm does not have to sound. These switches can be switched manually on the clock itself.
 * Customizable sleep timer.
 * Customizable snooze timer.
@@ -108,6 +110,8 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 * [NEO-6M](https://nl.aliexpress.com/item/1005006816514975.html) ~3,- for GPS time sync, this link requires soldering
 * [DS1307](https://de.aliexpress.com/item/1005006984190682.html) ~ €0,50/Pc
 * [RTTTL buzzer](https://de.aliexpress.com/item/1005009658713423.html) ~ €0,16/Pc
+* [GL5516 brightness sensor] (https://de.aliexpress.com/item/4000098897360.html) ~ €0,35/10pcs
+  additional parts needed, see: [GL5516 brightness sensor (Optional)](#GL5516Optional)
 
 ## <a name='Installation'></a>Installation
 
@@ -335,6 +339,60 @@ For additional tunes, see `alarm-clock-rtttl-additional-tunes.txt`. You can add 
 
 Add `alarm-clock-rtttl.yaml` to the `files:` property of `packages`.
 
+#### <a name='GL5516Optional'></a>GL5516 brightness sensor (Optional)
+
+With an added GL5516 LDR ,the clock can adjust the display contrast automatically based on the room brightness.
+
+For better performance i recommend also:
+ - Capacitors: 2x 100nF , 1x 10µF & 1x 1µF
+ - Resistors: 1x 10kOhm & 1x 100 Ohm
+
+Please note:
+I have not calibrated the sensor (schematic, placement, ...) nor done extensive research on this.
+The lux value may not be accurate! In my case it shold just set the display contrast, based on room brightness.
+
+The following schematic i have "borrowed" from the Ulantzi TC001 clock:
+
+´´´
+3V3 - GL5516 ------- 10k ------- GND
+|                |
+10uF & 100nF     1uF & 100nF - GND
+|                |
+|                100 Ohm
+|                |
+GND              SENSE (ESP32 GPIO14)
+´´´
+
+Connect it to the ESP32:
+
+| GL5516   | ESP32       |
+|----------|-------------|
+| SENSE    | GPIO14      | 
+| GND      | GND         |
+| 3V3      | 3V3         |
+
+Here is a picture with the sensor installed:
+[Picture of an installed GL5516](images/gl5516_ldr_installed.jpg)
+
+I recommend to use some clear plastic (in my case an clear furniture sticker) and allign the ldr inside.
+
+Add this to the `substitutions:`
+
+``` yaml
+  #Add this for GL5516 LDR
+  ldr_pin: GPIO14
+  aab_min: 0            # minimal value for abb
+  aab_max: 255          # maximal value for abb
+  aab_add: 10           # add value for abb
+  aab_scale: 2.5        # scale of abb [Picture of an installed GL5516](images/gl5516_ldr_installed)
+  aab_offset: 0
+```
+You can adjust the above values to you liking.
+I found the above fit my needs (sensor, position in the room, ...) regarding auto-adjust brightness.
+A diagram for aab_scale value is here [aab_scale value diagram for GL5516](gl5516_ldr_scale_diagram.jpg)
+
+Add `alarm-clock-gl5516.yaml` to the `files:` property of `packages`.
+
 ##### Usage
 
 ###### Options not available on the alarm itself
@@ -482,6 +540,7 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 - **BREAKING** SOAS now supports Arduino and the ESP-IDF framework. You will need to configure your SOAS accordingly. Please review the modules sestion
 - RTTTL module support
 - DS1307 module support
+- GL5516 module support (Contrast based on room brightness)
 - Support for local alarm on, even when the alarm is sounding
 - Improved `night_mode` detection
 - Documentation updates
