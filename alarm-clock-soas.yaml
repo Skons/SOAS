@@ -139,6 +139,11 @@ globals:
   - id: contrast_target
     type: float
     initial_value: '1.0'
+  # aab = auto-adjustable brightness
+  - id: aab_enabled
+    type: "bool"
+    restore_value: false
+    initial_value: "false"
 
 interval:
   - interval: 10s
@@ -1346,12 +1351,15 @@ display:
             timeFont20 = id(robotothin20);
           }
 
-          if (!is_night_mode) {
-            id(contrast_target) = id(screen_contrast_day).state / 100.0f;
-          } else {
-            id(contrast_target) = id(screen_contrast_night).state / 100.0f;
+          //set contrast if no aab is enabled
+          if (!id(aab_enabled)) {
+            if (!is_night_mode) {
+              id(contrast_target) = id(screen_contrast_day).state / 100.0f;
+            } else {
+              id(contrast_target) = id(screen_contrast_night).state / 100.0f;
+            }
+            id(smooth_contrast).execute();
           }
-          id(smooth_contrast).execute();
 
           //status bar
           if (id(music_on).state && shouldBlink) { //music icon
