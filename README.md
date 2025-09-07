@@ -2,7 +2,7 @@
 
 
 |                                                                     |                             |
-| ------------------------------------------------------------------- | --------------------------- |
+|---------------------------------------------------------------------|-----------------------------|
 | <img src="images/SOASClocks.jpeg" alt="SOAS" style="width:700px;"/> | ![Wake UP](images/soas.png) |
 
 
@@ -17,7 +17,7 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 ## Features
 * Alarm based on time.
 * Different display modes so there is more or less light emitted by the clock.
-* Contrast based on day or night.
+* Contrast based on day or night with smooth dimming
 * 4 Home Assistant integrated switches that switch based on the alarm time, alarm does not have to sound. These switches can be switched manually on the clock itself.
 * Customizable sleep timer.
 * Customizable snooze timer.
@@ -26,9 +26,13 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 * Ability to hide the clock
 * Volume increase of the alarm after a defined time of alarming
 * Local file as fallback when internet is not available
-* Volume increase of the alarm after a defined time of alarming
-* Local file as fallback when internet is not available
-
+* Time sync with GPS for when internet is not available (Optional)
+* Ability to switch off display completely
+  - Display is switched on every alarm.
+* Ability to "Display on/off automatically"
+  - Display is switched on when rotary or alarm button input or when alarm fires
+  - Display is switched off after 10 seconds of no rotary or alarm button input.
+    It will not switch off when alarm_on, snooze_on or music_on
 ## Requirements
 * < €25,-
 * 3d printer (not included in the price)
@@ -47,6 +51,7 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 ## Optional
 
 * A bit of soldering is not required, but the ground has to be shared so it is nice to solder that one. Depending on your rotary button, you maybe also need to do a little bit of soldering
+* [NEO-6M](https://nl.aliexpress.com/item/1005006816514975.html) ~3,- for GPS time sync, this link requires soldering
 
 ## Installation
 
@@ -55,14 +60,14 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 Connect all dupont cables corresponding the schema's below:
 
 | SH1106 / SH1107 | ESP32  |
-| --------------- | ------ |
+|-----------------|--------|
 | VCC             | 3v     |
 | GND             | GND    |
 | SCL             | GPIO47 |
 | SDA             | GPIO48 |
 
 | Rotary Button | ESP32  |
-| ------------- | ------ |
+|---------------|--------|
 | A             | GPIO9  |
 | B             | GPIO10 |
 | C             | GND    |
@@ -70,26 +75,18 @@ Connect all dupont cables corresponding the schema's below:
 | E             | GPIO8  |
 
 | MAX98357a | ESP32   |
-| --------- | ------- |
-| LRC       | GPIO3   |
-| BLCK      | GPIO1   |
-| DIN       | GPIO2   |
-| GND       | GND     |
-| Vin       | 5v / 3v |
-| MAX98357a | ESP32   |
-| --------- | ------- |
-| LRC       | GPIO3   |
+|-----------|---------|
+| LRC       | GPIO12  |
 | BLCK      | GPIO1   |
 | DIN       | GPIO2   |
 | GND       | GND     |
 | Vin       | 5v / 3v |
 
 | Flat head button | ESP32 |
-| ---------------- | ----- |
+|------------------|-------|
 | Switch           | GPIO4 |
 | GND              | GND   |
 
-Include the config below in your YAML. This one is made for a `ESP32-S3-N16R8`:
 Include the config below in your YAML. This one is made for a `ESP32-S3-N16R8`:
 
 ```yaml
@@ -100,7 +97,7 @@ substitutions:
   sun_longitude: 4.89°
   i2c_sda: GPIO48
   i2c_scl: GPIO47
-  i2s_lrclk_pin: GPIO3
+  i2s_lrclk_pin: GPIO12
   i2s_bclk_pin: GPIO1
   i2s_dout_pin: GPIO2
   pin_a: GPIO9
@@ -109,8 +106,7 @@ substitutions:
   rotary_button_pin: GPIO8
   alarm_file: alarm.flac
   language: "EN" #NL and DE are also supported
-  alarm_file: alarm.flac
-  language: "EN" #NL and DE are also supported
+  alarm_off_button_single_click_time: 1s #max time in seconds, which the alarm off button can be pressed to recognize the press
 
 packages:
   remote_package_shorthand: github://skons/soas/alarm-clock-soas.yaml@main
@@ -127,10 +123,11 @@ select:
   - id: !extend alarm_stream_url
     options:
       - "mp3 url to radio" #AAC seams to be making SOAS crash, FLAC or WAV will probably also work
-      - "mp3 url to radio" #AAC seams to be making SOAS crash, FLAC or WAV will probably also work
+      - "mp3 url to radio #2"
   - id: !extend alarm_stream_name
     options:
       - "Friendly name of the radio station"
+      - "Friendly name of the radio station #2"
 
 esphome:
   name: alarm-clock-soas
@@ -138,12 +135,6 @@ esphome:
   platformio_options: #PSRAM stuff
     build_flags: "-DBOARD_HAS_PSRAM"
     board_build.arduino.memory_type: qio_opi
-
-esp32:
-  board: esp32-s3-devkitc-1
-  framework:
-    type: esp-idf
-  flash_size: 16MB
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -162,7 +153,33 @@ Edit the `select` options with a stream URL and the name of the stream. To get s
 
 Edit `alarm_file` to have your own local alarm. You can use mp3, wav or a flac file.
 
-Edit `alarm_file` to have your own local alarm. You can use mp3, wav or a flac file.
+### Module GPS
+
+Instead of using internet time (NTP), it is possible to use GPS which does not require internet. The NEO-6M module is supported. Keep in mind that it's not the fastest method, it could take some time before the GPS sattelites have been found. It's accuracy is very high though.
+
+| NEO-6M | ESP32       |
+|--------|-------------|
+| TX     | GPIO44 (RX) |
+| RX     | GPIO43 (TX) |
+| VCC    | 3v          |
+| GND    | GND         |
+
+Add this to the `substitutions:`
+
+``` yaml
+  #Add this for the NEO-6M
+  gps_tx_pin: GPIO43
+  gps_rx_pin: GPIO44
+  timezone: Europe/Amsterdam
+```
+
+Replace the `packages:` with
+``` yaml
+packages:
+  remote_package_files:
+    url: https://github.com/skons/soas
+    files: [alarm-clock-soas.yaml, alarm-clock-gps.yml]
+```
 
 ## Usage
 
@@ -253,8 +270,7 @@ A few options are not (yet) available on the alarm self:
 * Hide clock
 * Alarm volume increase
 * Alarm volume increase duration
-* Alarm volume increase
-* Alarm volume increase duration
+* Night mode, which is done by the sun long lat by default. Nigh mode automatically switched off will not switch the mode without a Home Assistant automation for instance
 
 Use Home Assistant to configure these options.
 
@@ -279,45 +295,33 @@ Define the time in seconds, `Alarm volume increase duration`, the alarm must sou
 
 ### SH1107 SPI/I2C
 
-Some SH1107 display modules support both I2C and SPI interface modes (one mode at a time). To switch to SPI mode, follow [this](https://simple-circuit.com/interfacing-arduino-sh1107-oled-display-i2c-mode/) tutorial and review [this](https://github.com/Skons/SOAS/issues/2#issue-3286014273) post.
-
-## Alarm volume increase
-
-Define the time in seconds, `Alarm volume increase duration`, the alarm must sound before the amount of volume increase, `Alarm volume increase`, will be applied to make the volume go up. If one of the 2 is set to `0`, this feature is disabled.
-
-## FAQ
-
-### SH1107 SPI/I2C
-
-Some SH1107 display modules support both I2C and SPI interface modes (one mode at a time). To switch to SPI mode, follow [this](https://simple-circuit.com/interfacing-arduino-sh1107-oled-display-i2c-mode/) tutorial and review [this](https://github.com/Skons/SOAS/issues/2#issue-3286014273) post.
+Some SH1107 display modules support both I2C and SPI interface modes (one mode at a time). To switch to IIC mode, follow [this](https://simple-circuit.com/interfacing-arduino-sh1107-oled-display-i2c-mode/) tutorial and review [this](https://github.com/Skons/SOAS/issues/2#issue-3286014273) post.
 
 ## ToDo
 
 * Ability to save streamed url to local instead of having a list of streams (https://alshowto.com/home-assistant-and-esphome-how-to-series-1-step-3-make-a-simple-media-speaker/, see things that are quirky)
 
 ## Known issues
-* If the variables have not been written to flash, playback could possible not restore if de clock crashes. Possible fix: https://community.home-assistant.io/t/flash-write-interval/401927/2
-* If internet is down and SOAS decides to restart, time will not be set
+* The ESP-IDF framework seems to be causing frequent crashes (https://github.com/esphome/esphome/issues/10451)
+* The GPS module seems to be causing crashes, even if the ESP-IDF framework does not cause crashes
 
 ## Changelog
 
+### 2025.9.7.1
+- **ATTENTION** Avoid using GPIO3, which is a JTAG strapping pin. You must attach the wire from MAX98357a LRC <-> from ESP32 GPIO3 to GPIO12 for audio to work again.
+- Configurable max alarm off button time
+- Write preferences (like alarm_on) immediately to flash when alarm goes off (alarm_on set to true).
+  If the clock would crash, it will restore alarm_on (true) and restores the alarm.
+- Optional GPS time sync with NEO-6M
+- Night mode switch with Night mode automatic switch
+- `time_sync_done` is now set by checking the local clock
+- `check_alarms` script is now single mode
+- Display on switch with Display on/off automatically switch
+- Smooth display dimming on contrast change
+- Documentation updates
+
 ### 2025.8.25.2
   - Fixed that the sleep timer disabled the alarm, not the new music switch
-
-### 2025.8.25.1
-  - **BREAKING** Switch to esp-idf framework
-  - **BREAKING** With the switch to esp-idf pls stream urls do not work anymore
-  - **BREAKING** on_boot is removed from the yaml, see `esphome:` above
-  - **BREAKING** Flathead long press removed
-  - **BREAKING** Music is added to distinguish between alarm sound and playing music (for sleep timer and the hardware button). If music is streamed to the device, it's not treated as an alarm anymore
-  - Ability to increase the volume after a period of sounding the alarm [#5](https://github.com/Skons/SOAS/issues/5)
-  - Local file can be added for when internet and/or home assistant is not available
-  - Cosmetic updates to the yaml
-  - When music is streamed to the clock, music_on will be switched on, enabling local controls
-  - Volume is set to alarm_volume on stream stop, this is because of volume increase on alarm
-  - Added I2C to SPI documentation, see issue [#2](https://github.com/Skons/SOAS/issues/2). Thanks @popy2k14
-  - Language support for weekdays [#3](https://github.com/Skons/SOAS/issues/3)
-  - Documentation updates
 
 ### 2025.8.25.1
   - **BREAKING** Switch to esp-idf framework

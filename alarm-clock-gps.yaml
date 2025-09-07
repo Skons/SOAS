@@ -1,0 +1,20 @@
+uart:
+  id: uart_gps
+  tx_pin: ${gps_tx_pin}
+  rx_pin: ${gps_rx_pin}
+  baud_rate: 9600
+
+time:
+  - id: gps_time
+    timezone: ${timezone}
+    platform: gps
+
+gps:
+  latitude:
+    name: "Latitude"
+  longitude:
+    name: "Longitude"
+  altitude:
+    name: "Altitude"
+  satellites:
+    name: "Sattelites"
