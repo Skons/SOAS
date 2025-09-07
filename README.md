@@ -301,9 +301,13 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 
 * Ability to save streamed url to local instead of having a list of streams (https://alshowto.com/home-assistant-and-esphome-how-to-series-1-step-3-make-a-simple-media-speaker/, see things that are quirky)
 
+## Known issues
+* The ESP-IDF framework seems to be causing frequent crashes (https://github.com/esphome/esphome/issues/10451)
+* The GPS module seems to be causing crashes, even if the ESP-IDF framework does not cause crashes
+
 ## Changelog
 
-### 2025.x.x.x
+### 2025.9.7.1
 - **ATTENTION** Avoid using GPIO3, which is a JTAG strapping pin. You must attach the wire from MAX98357a LRC <-> from ESP32 GPIO3 to GPIO12 for audio to work again.
 - Configurable max alarm off button time
 - Write preferences (like alarm_on) immediately to flash when alarm goes off (alarm_on set to true).
