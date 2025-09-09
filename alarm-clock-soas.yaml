@@ -59,14 +59,14 @@ speaker:
 media_player:
   - id: media_player_alarm
     platform: speaker
-    name: Media player alarm
-    buffer_size: 524288  # 512 KB
+    name: "Media Player Alarm"
+    buffer_size: 262144  # 256 KB, safer for PSRAM
     media_pipeline:
-        speaker: media_spk_resampling_input
-        num_channels: 1
+      speaker: media_spk_resampling_input
+      num_channels: 1
     announcement_pipeline:
-        speaker: announcement_spk_resampling_input
-        num_channels: 1
+      speaker: announcement_spk_resampling_input
+      num_channels: 1
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: media_spk_mixer_input
@@ -82,6 +82,7 @@ media_player:
     files:
       - id: alarm_sound
         file: ${alarm_file}
+        streaming: true  # ensures large files are not fully loaded into RAM
     on_play:
       - logger.log: "Playback started!"
     on_pause:
