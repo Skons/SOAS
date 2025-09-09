@@ -26,24 +26,6 @@ logger:
           else if (tag == "speaker_media_player" && id(media_player_alarm).state == 4 && id(alarm_on).state) { //error on announcement
             //id(debug_logger).publish_state("announcing Level: " + to_string(level) + ". Tag: " + tag + ". Message:" + message);
           }
-
-# Temporary diagnostics: log PSRAM / HEAP totals and largest contiguous blocks
-interval:
-  - interval: 200ms
-    then:
-      - lambda: |-
-          #include "esp_heap_caps.h"
-          static int __probe_count = 0;
-          if (__probe_count >= 50) return;  // stop after 50 samples
-          __probe_count++;
-          size_t free_spiram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-          size_t largest_spiram = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
-          size_t free_heap = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
-          size_t largest_heap = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
-          ESP_LOGD("memdbg","SAMPLE %d: PSRAM free=%u largest=%u | HEAP free=%u largest=%u",
-                   __probe_count, free_spiram, largest_spiram, free_heap, largest_heap);
-
-
 i2c:
   sda: ${i2c_sda}
   scl: ${i2c_scl}
