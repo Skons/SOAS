@@ -60,7 +60,7 @@ media_player:
   - id: media_player_alarm
     platform: speaker
     name: "Media Player Alarm"
-    buffer_size: 131072  # 128 KB, safer for PSRAM streaming
+    buffer_size: 65536   # 64 KB — try small first
     media_pipeline:
       speaker: media_spk_resampling_input
       num_channels: 1
