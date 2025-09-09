@@ -84,16 +84,6 @@ media_player:
         file: ${alarm_file}
     on_play:
       - logger.log: "Playback started!"
-      # Put this in the action that runs immediately before you play the stream
-      - lambda: |-
-          #include "esp_heap_caps.h"
-          size_t free_total = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-          size_t largest = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
-          ESP_LOGD("memdbg", "PSRAM free_total=%u largest_block=%u", free_total, largest);
-          free_total = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
-          largest = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
-          ESP_LOGD("memdbg", "HEAP free_total=%u largest_block=%u", free_total, largest);
-
     on_pause:
       - logger.log: "Playback paused!"
     on_idle:
@@ -1017,6 +1007,15 @@ select:
     optimistic: true
     restore_value: true
     set_action:
+            # Put this in the action that runs immediately before you play the stream
+      - lambda: |-
+          #include "esp_heap_caps.h"
+          size_t free_total = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+          size_t largest = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
+          ESP_LOGD("memdbg", "PSRAM free_total=%u largest_block=%u", free_total, largest);
+          free_total = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
+          largest = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
+          ESP_LOGD("memdbg", "HEAP free_total=%u largest_block=%u", free_total, largest);
       - lambda: |-
           ESP_LOGD("alarm_stream_name", "Option %s is selected", x.c_str());
           auto index = id(alarm_stream_name).index_of(x.c_str());
