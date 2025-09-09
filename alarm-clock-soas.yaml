@@ -60,6 +60,7 @@ media_player:
   - id: media_player_alarm
     platform: speaker
     name: Media player alarm
+    buffer_size: 524288  # 512 KB
     media_pipeline:
         speaker: media_spk_resampling_input
         num_channels: 1
