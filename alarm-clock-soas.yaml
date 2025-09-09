@@ -82,7 +82,6 @@ media_player:
     files:
       - id: alarm_sound
         file: ${alarm_file}
-        streaming: true  # ensures large files are not fully loaded into RAM
     on_play:
       - logger.log: "Playback started!"
     on_pause:
