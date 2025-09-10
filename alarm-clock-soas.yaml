@@ -42,7 +42,7 @@ speaker:
     dac_type: external
     i2s_dout_pin: ${i2s_dout_pin}
     sample_rate: 48000
-    buffer_duration: 2000
+    buffer_duration: 150
   - id: mixer_speaker_id
     platform: mixer
     output_speaker: speaker_id
