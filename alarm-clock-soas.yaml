@@ -42,6 +42,7 @@ speaker:
     dac_type: external
     i2s_dout_pin: ${i2s_dout_pin}
     sample_rate: 48000
+    buffer_duration: 2000
   - id: mixer_speaker_id
     platform: mixer
     output_speaker: speaker_id
@@ -51,7 +52,6 @@ speaker:
   - id: media_spk_resampling_input
     platform: resampler
     output_speaker: media_spk_mixer_input
-    buffer_duration: 250
   - id: announcement_spk_resampling_input
     platform: resampler
     output_speaker: announcement_spk_mixer_input
