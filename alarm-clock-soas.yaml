@@ -51,7 +51,7 @@ speaker:
   - id: media_spk_resampling_input
     platform: resampler
     output_speaker: media_spk_mixer_input
-    buffer_duration: 2000
+    buffer_duration: 250
   - id: announcement_spk_resampling_input
     platform: resampler
     output_speaker: announcement_spk_mixer_input
