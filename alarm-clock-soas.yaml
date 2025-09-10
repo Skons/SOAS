@@ -52,6 +52,8 @@ speaker:
     platform: resampler
     output_speaker: media_spk_mixer_input
     task_stack_in_psram: true
+    sample_rate: 48000
+    bits_per_sample: 12
   - id: announcement_spk_resampling_input
     platform: resampler
     output_speaker: announcement_spk_mixer_input
