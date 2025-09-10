@@ -59,7 +59,7 @@ media_player:
   - id: media_player_alarm
     platform: speaker
     name: "Media Player Alarm"
-    buffer_size: 4000000   # 512 KB test
+    buffer_size: 32000   # 32 KB test
     task_stack_in_psram: true
     media_pipeline:
       speaker: media_spk_resampling_input
