@@ -41,7 +41,7 @@ speaker:
     platform: i2s_audio
     dac_type: external
     i2s_dout_pin: ${i2s_dout_pin}
-    sample_rate: 48000
+    sample_rate: 8000
   - id: mixer_speaker_id
     platform: mixer
     output_speaker: speaker_id
