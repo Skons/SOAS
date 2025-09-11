@@ -188,10 +188,16 @@ time:
                 - if:
                     condition:
                         - sun.is_above_horizon:
+                        - switch.is_on: night_mode
                     then:
                       - switch.turn_off: night_mode
                     else:
-                      - switch.turn_on: night_mode
+                      - if:
+                          condition:
+                              - sun.is_below_horizon:
+                              - switch.is_off: night_mode
+                          then:
+                            - switch.turn_on: night_mode
 
 sun:
   latitude: ${sun_latitude}
@@ -1203,11 +1209,6 @@ switch:
     optimistic: true
     internal: true
     restore_mode: RESTORE_DEFAULT_OFF
-    on_turn_off:
-      - lambda:
-          int iTimestampForAlarmLocal = id(ntp).now().timestamp;
-          std::string sTimestampForAlarmLocal = to_string(iTimestampForAlarmLocal);
-          id(alarm_off_local_timestamp).publish_state(sTimestampForAlarmLocal);
   - name: "Music on"
     platform: template
     id: music_on
@@ -2430,6 +2431,7 @@ script:
               auto aAlarmTimeStamp = parse_number<int>(id(alarm_on_timestamp).state);
               if (aAlarmTimeStamp.has_value()) {
                 time_t tAlarmTimeStamp = aAlarmTimeStamp.value();
+                int iAlarmTimeStamp = tAlarmTimeStamp;
                 char cAlarmOnTimestampHour[5];
                 char cAlarmOnTimestampMinute[5];
                 strftime(cAlarmOnTimestampHour, sizeof(cAlarmOnTimestampHour), "%H", localtime(&tAlarmTimeStamp));
@@ -2446,7 +2448,7 @@ script:
                     //ESP_LOGD("check_alarms", "alarmDuration %i", alarmDuration);
                     //ESP_LOGD("check_alarms", "result 1 %i", result);
                     if (result == 0) { //the remainder is 0, which means alarmVolumeIncreaseDuration has passed
-                      ESP_LOGD("check_alarms", "alarmVolumeIncreaseDuration %i seconds since alarm start %i has passed", alarmVolumeIncreaseDuration, tAlarmTimeStamp);
+                      ESP_LOGD("check_alarms", "alarmVolumeIncreaseDuration %i seconds since alarm start %i has passed", alarmVolumeIncreaseDuration, iAlarmTimeStamp);
                       //ESP_LOGD("check_alarms", "currentTimeForAlarmTimeStamp %i", currentTimeForAlarmTimeStamp);
                       //ESP_LOGD("check_alarms", "alarmTimeStamp %i", alarmTimeStamp);
                       //ESP_LOGD("check_alarms", "result 2 %i", result);
@@ -2469,11 +2471,12 @@ script:
                   auto aAlarmOffLocalTimeStamp = parse_number<int>(id(alarm_off_local_timestamp).state);
                   int iAlarmOffLocalTimeStamp = 0;
                   if (aAlarmOffLocalTimeStamp.has_value()) {
-                    iAlarmOffLocalTimeStamp = aAlarmOffLocalTimeStamp;
+                    time_t tAlarmOffLocalTimeStamp = aAlarmOffLocalTimeStamp.value();
+                    iAlarmOffLocalTimeStamp = tAlarmOffLocalTimeStamp;
                   }
 
-                  ESP_LOGD("check_alarms", "iAlarmOffLocalTimeStamp %i iAlarmOffLocalTimeStamp %i", alarm_on_local_after_seconds, tAlarmTimeStamp);
-                  if (alarmDuration > id(alarm_on_local_after_seconds).state && iAlarmOffLocalTimeStamp < tAlarmTimeStamp) {
+                  ESP_LOGD("check_alarms", "alarm_on_local_after_seconds %i iAlarmTimeStamp %i", alarm_on_local_after_seconds, iAlarmTimeStamp);
+                  if (alarmDuration > id(alarm_on_local_after_seconds).state && iAlarmOffLocalTimeStamp < iAlarmTimeStamp) {
                     ESP_LOGD("check_alarms", "Alarm duration of %i is longer then %i seconds of alarm_on_local_after_seconds", alarm_on_local_after_seconds);
                     id(alarm_on_local).turn_on();
                   }

@@ -483,6 +483,7 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 - RTTTL module support
 - DS1307 module support
 - Support for local alarm on, even when the alarm is sounding
+- Improved `night_mode` detection
 - Documentation updates
 
 ### <a name=''></a>2025.9.7.1
