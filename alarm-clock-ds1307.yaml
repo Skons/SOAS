@@ -5,11 +5,12 @@ time:
         - logger.log: "NTP time synced -> write RTC to DS1307!"
         - ds1307.write_time:
             id: ds1307_time
-            
+
   - platform: ds1307
     update_interval: never
     id: ds1307_time
-    
+    timezone: ${timezone}
+
 esphome:
   on_boot:
     - priority: 600

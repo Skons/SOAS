@@ -37,57 +37,6 @@ i2s_audio:
     i2s_lrclk_pin: ${i2s_lrclk_pin}
     i2s_bclk_pin: ${i2s_bclk_pin}
 
-speaker:
-  - id: speaker_id
-    platform: i2s_audio
-    dac_type: external
-    i2s_dout_pin: ${i2s_dout_pin}
-    sample_rate: 48000
-  - id: mixer_speaker_id
-    platform: mixer
-    output_speaker: speaker_id
-    source_speakers:
-      - id: announcement_spk_mixer_input
-      - id: media_spk_mixer_input
-  - id: media_spk_resampling_input
-    platform: resampler
-    output_speaker: media_spk_mixer_input
-  - id: announcement_spk_resampling_input
-    platform: resampler
-    output_speaker: announcement_spk_mixer_input
-
-media_player:
-  - id: media_player_alarm
-    platform: speaker
-    name: Media player alarm
-    media_pipeline:
-        speaker: media_spk_resampling_input
-        num_channels: 1
-    announcement_pipeline:
-        speaker: announcement_spk_resampling_input
-        num_channels: 1
-    on_announcement:
-      - mixer_speaker.apply_ducking:
-          id: media_spk_mixer_input
-          decibel_reduction: 20
-          duration: 0.0s
-      - wait_until:
-          not:
-            media_player.is_announcing:
-      - mixer_speaker.apply_ducking:
-          id: media_spk_mixer_input
-          decibel_reduction: 0
-          duration: 1.0s
-    files:
-      - id: alarm_sound
-        file: ${alarm_file}
-    on_play:
-      - logger.log: "Playback started!"
-    on_pause:
-      - logger.log: "Playback paused!"
-    on_idle:
-      - logger.log: "Playback finished!"
-
 font:
   - id: robotomedium40
     file: fonts/Roboto-Medium.ttf
@@ -524,6 +473,17 @@ number:
     max_value: 300
     step: 30
     mode: slider
+  - name: "Alarm on local after seconds"
+    platform: template
+    id: alarm_on_local_after_seconds
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: 0
+    max_value: 300
+    step: 30
+    mode: slider
 
 text_sensor:
   - name: "Sleep timer time"
@@ -565,6 +525,10 @@ text_sensor:
   - name: "Alarm on timestamp"
     platform: template
     id: alarm_on_timestamp
+    internal: true
+  - name: "Alarm off local timestamp"
+    platform: template
+    id: alarm_off_local_timestamp
     internal: true
 
 sensor:
@@ -690,6 +654,7 @@ sensor:
 
 binary_sensor:
   - name: "Alarm off"
+    id: alarm_off
     platform: gpio
     pin:
       number: ${alarm_off_button_pin}
@@ -698,6 +663,11 @@ binary_sensor:
         pullup: true
       inverted: true
     on_multi_click:
+      - timing: #long click
+        - ON for at least 2s
+        - OFF for at least 0.5s
+        then:
+          - switch.turn_off: alarm_on_local
       - timing: #single click
         - ON for at most ${alarm_off_button_single_click_time}
         - OFF for at least 0.5s
@@ -1191,12 +1161,13 @@ switch:
     entity_category: config
     on_turn_on:
       - lambda:
-          //sync preferences now to flash, so alarm_on is set if we crashes!
-          global_preferences->sync();
           int iTimestampForAlarm = id(ntp).now().timestamp;
           std::string sTimestampForAlarm = to_string(iTimestampForAlarm);
           ESP_LOGD("alarm_on", "timestampForAlarm %s", sTimestampForAlarm.c_str());
           id(alarm_on_timestamp).publish_state(sTimestampForAlarm);
+          //sync preferences now to flash, so alarm_on is set if we crashes!
+          ESP_LOGD("alarm_on", "saving settings");
+          global_preferences->sync();
       - switch.turn_on: display_on
       - if:
           condition:
@@ -1233,32 +1204,10 @@ switch:
     internal: true
     restore_mode: RESTORE_DEFAULT_OFF
     on_turn_off:
-      - mixer_speaker.apply_ducking:  # Stop ducking the media stream over 2 seconds
-          id: media_spk_mixer_input
-          decibel_reduction: 0
-          duration: 2.0s
-    on_turn_on:
-        # Duck media audio by 20 decibels instantly
-        - mixer_speaker.apply_ducking:
-            id: media_spk_mixer_input
-            decibel_reduction: 20
-            duration: 0.0s
-        - switch.turn_on: display_on
-        - while:
-            condition:
-              switch.is_on: alarm_on_local
-            then:
-              # Play the alarm sound as an announcement
-              - media_player.speaker.play_on_device_media_file:
-                  media_file: alarm_sound
-                  announcement: true
-              # Wait until the alarm sound starts playing
-              - wait_until:
-                  media_player.is_announcing:
-              # Wait until the alarm sound stops playing
-              - wait_until:
-                  not:
-                    media_player.is_announcing:
+      - lambda:
+          int iTimestampForAlarmLocal = id(ntp).now().timestamp;
+          std::string sTimestampForAlarmLocal = to_string(iTimestampForAlarmLocal);
+          id(alarm_off_local_timestamp).publish_state(sTimestampForAlarmLocal);
   - name: "Music on"
     platform: template
     id: music_on
@@ -2490,9 +2439,9 @@ script:
                 alarmTimeStamp = iCurrentTimeForAlarmMidnight + (iAlarmOnTimestampHour * 60  * 60) + (iAlarmOnTimestampMinute * 60);
                 int alarmVolumeIncreaseDuration = id(alarm_volume_increase_duration).state;
                 int alarmVolumeIncrease = id(alarm_volume_increase).state;
-                if (alarmVolumeIncreaseDuration != 0 && alarmVolumeIncrease != 0) {
+                int alarmDuration = currentTimeForAlarmTimeStamp - alarmTimeStamp;
+                if (alarmVolumeIncreaseDuration != 0 && alarmVolumeIncrease != 0) { //alarm volume increase check
                   if (currentTimeForAlarmTimeStamp != alarmTimeStamp) { // its not at 0
-                    int alarmDuration = currentTimeForAlarmTimeStamp - alarmTimeStamp;
                     int result = alarmDuration % alarmVolumeIncreaseDuration;
                     //ESP_LOGD("check_alarms", "alarmDuration %i", alarmDuration);
                     //ESP_LOGD("check_alarms", "result 1 %i", result);
@@ -2513,6 +2462,20 @@ script:
                         ESP_LOGD("check_alarms", "Updating volume with %i", newVolume);
                       }
                     }
+                  }
+                }
+
+                if (!id(alarm_on_local).state && id(alarm_on_local_after_seconds).state > 0) { //local alarm on after alarm_on_local_after_seconds check
+                  auto aAlarmOffLocalTimeStamp = parse_number<int>(id(alarm_off_local_timestamp).state);
+                  int iAlarmOffLocalTimeStamp = 0;
+                  if (aAlarmOffLocalTimeStamp.has_value()) {
+                    iAlarmOffLocalTimeStamp = aAlarmOffLocalTimeStamp;
+                  }
+
+                  ESP_LOGD("check_alarms", "iAlarmOffLocalTimeStamp %i iAlarmOffLocalTimeStamp %i", alarm_on_local_after_seconds, tAlarmTimeStamp);
+                  if (alarmDuration > id(alarm_on_local_after_seconds).state && iAlarmOffLocalTimeStamp < tAlarmTimeStamp) {
+                    ESP_LOGD("check_alarms", "Alarm duration of %i is longer then %i seconds of alarm_on_local_after_seconds", alarm_on_local_after_seconds);
+                    id(alarm_on_local).turn_on();
                   }
                 }
               }

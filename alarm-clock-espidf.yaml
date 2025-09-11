@@ -1,0 +1,85 @@
+speaker:
+  - id: speaker_id
+    platform: i2s_audio
+    dac_type: external
+    i2s_dout_pin: ${i2s_dout_pin}
+    sample_rate: 48000
+  - id: mixer_speaker_id
+    platform: mixer
+    output_speaker: speaker_id
+    source_speakers:
+      - id: announcement_spk_mixer_input
+      - id: media_spk_mixer_input
+  - id: media_spk_resampling_input
+    platform: resampler
+    output_speaker: media_spk_mixer_input
+  - id: announcement_spk_resampling_input
+    platform: resampler
+    output_speaker: announcement_spk_mixer_input
+
+media_player:
+  - id: media_player_alarm
+    platform: speaker
+    name: Media player alarm
+    media_pipeline:
+        speaker: media_spk_resampling_input
+        num_channels: 1
+    announcement_pipeline:
+        speaker: announcement_spk_resampling_input
+        num_channels: 1
+    on_announcement:
+      - mixer_speaker.apply_ducking:
+          id: media_spk_mixer_input
+          decibel_reduction: 20
+          duration: 0.0s
+      - wait_until:
+          not:
+            media_player.is_announcing:
+      - mixer_speaker.apply_ducking:
+          id: media_spk_mixer_input
+          decibel_reduction: 0
+          duration: 1.0s
+    files:
+      - id: alarm_sound
+        file: ${alarm_file}
+    on_play:
+      - logger.log: "Playback started!"
+    on_pause:
+      - logger.log: "Playback paused!"
+    on_idle:
+      - logger.log: "Playback finished!"
+
+switch:
+  - id: !extend alarm_on_local
+    on_turn_off:
+      - mixer_speaker.apply_ducking:  # Stop ducking the media stream over 2 seconds
+          id: media_spk_mixer_input
+          decibel_reduction: 0
+          duration: 2.0s
+      - lambda:
+          int iTimestampForAlarmLocal = id(ntp).now().timestamp;
+          std::string sTimestampForAlarmLocal = to_string(iTimestampForAlarmLocal);
+          ESP_LOGD("alarm_on_local", "sTimestampForAlarmLocal %s", sTimestampForAlarmLocal.c_str());
+          id(alarm_off_local_timestamp).publish_state(sTimestampForAlarmLocal);
+    on_turn_on:
+        # Duck media audio by 20 decibels instantly
+        - mixer_speaker.apply_ducking:
+            id: media_spk_mixer_input
+            decibel_reduction: 20
+            duration: 0.0s
+        - switch.turn_on: display_on
+        - while:
+            condition:
+              switch.is_on: alarm_on_local
+            then:
+              # Play the alarm sound as an announcement
+              - media_player.speaker.play_on_device_media_file:
+                  media_file: alarm_sound
+                  announcement: true
+              # Wait until the alarm sound starts playing
+              - wait_until:
+                  media_player.is_announcing:
+              # Wait until the alarm sound stops playing
+              - wait_until:
+                  not:
+                    media_player.is_announcing:

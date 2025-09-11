@@ -1,0 +1,79 @@
+
+output:
+  - platform: ledc
+    pin: ${buzzer_pin}
+    id: rtttl_out
+
+rtttl:
+  id: my_rtttl
+  output: rtttl_out
+  gain: ${buzzer_gain}
+  on_finished_playback:
+    - logger.log: 'Buzzer song ended!'
+
+select:
+  - platform: template
+    name: Alarm buzzer sound
+    id: alarm_buzzer_sound
+    optimistic: true
+    restore_value: true
+    set_action:
+      - rtttl.stop
+      - rtttl.play:
+          id: my_rtttl
+          rtttl: !lambda "return x;"
+    internal: true
+  - platform: template
+    name: Alarm buzzer
+    id: alarm_buzzer_name
+    optimistic: true
+    restore_value: true
+    set_action:
+      - lambda: |-
+          ESP_LOGD("alarm_buzzer_name", "Option %s is selected", x.c_str());
+          auto index = id(alarm_buzzer_name).index_of(x.c_str());
+          if (index.has_value()) { //selected value has an index
+            ESP_LOGD("alarm_buzzer_name", "'%s' is at index: %d", x.c_str(), index.value());
+            auto option = id(alarm_buzzer_sound).at(index.value());
+            if (option.has_value()) { //alarm_buzzer_sound index has been found based on alarm_buzzer_name
+              auto value = option.value();
+              ESP_LOGD("alarm_buzzer_name", "Setting sound %s at alarm_buzzer_sound", value.c_str());
+              auto alarmBuzzerSound = id(alarm_buzzer_sound).make_call();
+              alarmBuzzerSound.set_option(value.c_str());
+              alarmBuzzerSound.perform();
+            } else {
+              ESP_LOGE("alarm_buzzer_name", "Index %d does not exist at alarm_buzzer_sound", index.has_value());
+            }
+          } else {
+            ESP_LOGE("alarm_buzzer_name", "There is no option '%s'", x.c_str());
+          }
+
+switch:
+  - id: !extend alarm_on_local
+    on_turn_off:
+      then:
+        - rtttl.stop
+        - lambda:
+            int iTimestampForAlarmLocal = id(ntp).now().timestamp;
+            std::string sTimestampForAlarmLocal = to_string(iTimestampForAlarmLocal);
+            ESP_LOGD("alarm_on_local", "sTimestampForAlarmLocal %s", sTimestampForAlarmLocal.c_str());
+            id(alarm_off_local_timestamp).publish_state(sTimestampForAlarmLocal);
+    on_turn_on:
+      then:
+        - switch.turn_on: display_on
+        - while:
+            condition:
+              switch.is_on: alarm_on_local
+            then:
+                # Play the alarm sound on buzzer
+              - lambda: |-
+                  auto selectState = id(alarm_buzzer_sound).state.c_str();
+                  id(my_rtttl).play(selectState);
+                  ESP_LOGD("alarm_on_local", "Playing buzzer sound %s", selectState);
+                # Wait until the alarm sound starts playing
+              - wait_until:
+                  rtttl.is_playing:
+                # Wait until the alarm sound stops playing
+              - wait_until:
+                  not:
+                    rtttl.is_playing:
