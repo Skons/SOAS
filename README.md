@@ -313,7 +313,8 @@ Add this to the `substitutions:`
   buzzer_pin: GPIO21
   buzzer_gain: 50%
 ```
-The buzzer_gain value did not work for me, i have just added an 56 Ohm series resistor to make it quiter.
+
+If the buzzer_gain value does not work, you can add a 56 Ohm resistor in series to make it more quiet.
 
 Add this to `select:` (after your stream urls)
 
@@ -480,6 +481,7 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 
 ### <a name='x.x.x'></a>2025.x.x.x
 - **BREAKING** SOAS now supports Arduino and the ESP-IDF framework. You will need to configure your SOAS accordingly. Please review the modules sestion
+- **BREAKING** Home Assistant # time, snooze time and sleep timer are changed to datetime or time components
 - RTTTL module support
 - DS1307 module support
 - Support for local alarm on, even when the alarm is sounding
