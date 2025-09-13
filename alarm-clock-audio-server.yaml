@@ -11,8 +11,3 @@ simple_audio_server:
   id: audio_server
   port: 8080
   alarm_file: ${alarm_file}
-
-# Add component to create the required directories
-folder_setup:
-  - create_dir: "components"
-  - create_dir: "components/simple_audio_server"
