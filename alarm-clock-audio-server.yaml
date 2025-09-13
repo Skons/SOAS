@@ -1,0 +1,13 @@
+# Audio Server Module - replaces RTTTL buzzer for local backup alarm
+
+external_components:
+  - source: 
+      type: local
+      path: components
+    components: [simple_audio_server]
+
+# Audio file server component
+simple_audio_server:
+  id: audio_server
+  port: 8080
+  alarm_file: ${alarm_file}
