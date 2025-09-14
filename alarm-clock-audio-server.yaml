@@ -13,15 +13,10 @@ simple_audio_server:
   alarm_file: ${alarm_file}
 
 switch:
-  - name: "Alarm on local"
-    platform: template
-    id: alarm_on_local
-    optimistic: true
-    internal: true
-    restore_mode: RESTORE_DEFAULT_OFF
+  - id: !extend alarm_on_local
     on_turn_on:
       then:
-        # Instead of buzzer, play localhost stream
+        # Play localhost stream as backup
         - media_player.play_media:
             id: media_player_alarm
             media_url: "http://127.0.0.1:8080/${alarm_file}"
