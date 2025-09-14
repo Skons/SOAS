@@ -11,3 +11,23 @@ simple_audio_server:
   id: audio_server
   port: 8080
   alarm_file: ${alarm_file}
+
+switch:
+  - name: "Alarm on local"
+    platform: template
+    id: alarm_on_local
+    optimistic: true
+    internal: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      then:
+        # Instead of buzzer, play localhost stream
+        - media_player.play_media:
+            id: media_player_alarm
+            media_url: "http://127.0.0.1:8080/${alarm_file}"
+        - logger.log: "Local backup alarm activated - playing embedded audio file"
+    on_turn_off:
+      then:
+        - media_player.stop:
+            id: media_player_alarm
+        - logger.log: "Local backup alarm stopped"
