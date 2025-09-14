@@ -12,17 +12,17 @@ simple_audio_server:
   port: 8080
   alarm_file: ${alarm_file}
 
-#switch:
-#  - id: !extend alarm_on_local
-#    on_turn_on:
-#      then:
-#        # Play localhost stream as backup
-#        - media_player.play_media:
-#            id: media_player_alarm
-#            media_url: "http://127.0.0.1:8080/${alarm_file}"
-#        - logger.log: "Local backup alarm activated - playing embedded audio file"
-#    on_turn_off:
-#      then:
-#        - media_player.stop:
-#            id: media_player_alarm
-#        - logger.log: "Local backup alarm stopped"
+switch:
+  - id: !extend alarm_on_local
+    on_turn_on:
+      then:
+        # Play localhost stream as backup
+        - switch.turn_on: display_on
+        - media_player.play_media:
+            id: media_player_alarm
+            media_url: "http://127.0.0.1:8080/${alarm_file}"
+        - logger.log: "Local backup alarm activated - playing embedded audio file"
+    on_turn_off:
+      then:
+        - switch.turn_off: alarm_on
+        - logger.log: "Local backup alarm stopped"
