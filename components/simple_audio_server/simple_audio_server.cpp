@@ -17,33 +17,30 @@ void SimpleAudioServerComponent::setup() {
     ESP_LOGW(TAG, "Make sure %s is in your ESPHome project directory", alarm_filename_.c_str());
   }
   
+  // Initialize WiFi interface for localhost networking (but don't connect)
+  WiFi.mode(WIFI_STA);
+  ESP_LOGI(TAG, "WiFi interface initialized for localhost networking (offline mode)");
+  
   ESP_LOGI(TAG, "Starting server setup in 3 seconds...");
   
   this->set_timeout(3000, [this]() {
-    ESP_LOGI(TAG, "Timeout callback triggered - attempting server setup");
-    
-    if (WiFi.status() != WL_CONNECTED) {
-      ESP_LOGW(TAG, "WiFi not connected yet, retrying in 2 seconds");
-      this->set_timeout(2000, [this]() { this->start_server(); });
-      return;
-    }
-    
+    ESP_LOGI(TAG, "Timeout callback triggered - starting offline-capable server");
     this->start_server();
   });
   
-  ESP_LOGCONFIG(TAG, "Simple Audio Server setup complete - server will start via timeout");
+  ESP_LOGCONFIG(TAG, "Simple Audio Server setup complete - FULLY OFFLINE CAPABLE");
 }
 
 void SimpleAudioServerComponent::start_server() {
-  ESP_LOGI(TAG, "start_server() called - WiFi status: %d", WiFi.status());
+  ESP_LOGI(TAG, "start_server() called - starting localhost server");
   
-  if (WiFi.status() != WL_CONNECTED) {
-    ESP_LOGE(TAG, "Cannot start server - WiFi not connected");
-    return;
-  }
+  // Server works completely offline - no WiFi connection required
+  ESP_LOGI(TAG, "Starting server in offline-capable mode");
+  ESP_LOGI(TAG, "This will work even without WiFi for localhost (127.0.0.1) requests");
   
   ESP_LOGI(TAG, "Creating AsyncWebServer on port %d...", port_);
-  ESP_LOGI(TAG, "Server will bind to 0.0.0.0:%d (accepts localhost and IP requests)", port_);
+  ESP_LOGI(TAG, "Server will bind to 0.0.0.0:%d (accepts localhost requests)", port_);
+  ESP_LOGI(TAG, "Localhost stream works WITHOUT internet connectivity");
   
   server_ = std::make_unique<AsyncWebServer>(port_);
   
@@ -60,8 +57,8 @@ void SimpleAudioServerComponent::start_server() {
              request->client()->remoteIP().toString().c_str(),
              request->host().c_str());
     
-    String response = "SOAS Audio File Server (Embedded Mode)\n";
-    response += "=====================================\n";
+    String response = "SOAS Audio File Server (Offline Mode)\n";
+    response += "====================================\n";
     response += "Alarm file: " + String(alarm_filename_.c_str()) + "\n";
     response += "Status: " + String((audio_data_ && audio_size_ > 0) ? "Ready" : "No audio data") + "\n";
     response += "Stream URL: http://127.0.0.1:" + String(port_) + "/" + String(alarm_filename_.c_str()) + "\n";
@@ -77,6 +74,7 @@ void SimpleAudioServerComponent::start_server() {
     response += "\nRequest details:\n";
     response += "Host: " + request->host() + "\n";
     response += "Client IP: " + request->client()->remoteIP().toString() + "\n";
+    response += "\nMODE: FULLY OFFLINE - works without any network!\n";
     
     request->send(200, "text/plain", response);
   });
@@ -117,10 +115,11 @@ void SimpleAudioServerComponent::start_server() {
   server_->begin();
   
   ESP_LOGI(TAG, "=== SOAS AUDIO SERVER STARTED SUCCESSFULLY ===");
-  ESP_LOGI(TAG, "Server running at: http://%s:%d/", WiFi.localIP().toString().c_str(), port_);
+  ESP_LOGI(TAG, "Server running on port %d", port_);
   ESP_LOGI(TAG, "SOAS stream URL: http://127.0.0.1:%d/%s", port_, alarm_filename_.c_str());
-  ESP_LOGI(TAG, "Server accepts requests to both localhost (127.0.0.1) and %s", WiFi.localIP().toString().c_str());
-  ESP_LOGI(TAG, "Mode: Embedded audio with smart looping");
+  ESP_LOGI(TAG, "Mode: FULLY OFFLINE CAPABLE - no network required");
+  ESP_LOGI(TAG, "WiFi status: %s (not required for localhost streaming)", 
+           WiFi.status() == WL_CONNECTED ? "Connected" : "Offline");
 }
 
 void SimpleAudioServerComponent::handle_audio_stream_(AsyncWebServerRequest *request) {
@@ -145,6 +144,7 @@ void SimpleAudioServerComponent::handle_audio_stream_(AsyncWebServerRequest *req
     test_response += "Audio data: " + String(audio_data_ ? "Available" : "NULL") + "\n";
     test_response += "Audio size: " + String(audio_size_) + " bytes\n";
     test_response += "Check compilation logs for embedding status\n";
+    test_response += "Mode: Offline capable\n";
     
     request->send(200, "text/plain", test_response);
     return;
@@ -263,7 +263,7 @@ void SimpleAudioServerComponent::loop() {
 }
 
 void SimpleAudioServerComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "SOAS Audio File Server (Embedded Mode):");
+  ESP_LOGCONFIG(TAG, "SOAS Audio File Server (Offline Mode):");
   ESP_LOGCONFIG(TAG, "  Port: %d", port_);
   ESP_LOGCONFIG(TAG, "  Alarm file: %s", alarm_filename_.c_str());
   ESP_LOGCONFIG(TAG, "  Audio data: %s", (audio_data_ && audio_size_ > 0) ? "Available" : "Not found");
@@ -271,9 +271,10 @@ void SimpleAudioServerComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  File size: %d bytes", audio_size_);
     ESP_LOGCONFIG(TAG, "  Looping: %s", audio_size_ < 500000 ? "YES (infinite)" : "NO (single play)");
   }
-  if (WiFi.status() == WL_CONNECTED) {
-    ESP_LOGCONFIG(TAG, "  SOAS stream URL: http://127.0.0.1:%d/%s", port_, alarm_filename_.c_str());
-  }
+  ESP_LOGCONFIG(TAG, "  Network independence: FULL (works without any network)");
+  ESP_LOGCONFIG(TAG, "  SOAS stream URL: http://127.0.0.1:%d/%s", port_, alarm_filename_.c_str());
+  ESP_LOGCONFIG(TAG, "  WiFi status: %s (not required)", 
+                WiFi.status() == WL_CONNECTED ? "Connected" : "Offline");
 }
 
 }  // namespace simple_audio_server
