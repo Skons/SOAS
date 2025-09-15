@@ -14,10 +14,11 @@
 	* [Modules](#Modules)
 		* [ESP-IDF Framework](#ESP-IDFFramework)
 		* [Arduino Framework](#ArduinoFramework)
+		* [Audio Server (Optional)](#AudioServerOptional)
 		* [GPS (Optional)](#GPSOptional)
 		* [DS1307 (Optional)](#DS1307Optional)
 		* [RTTTL (Optional)](#RTTTLOptional)
-		* [GL5516 brightness sensor (Optional)](#GL5516Optional)        
+		* [GL5516 brightness sensor (Optional)](#GL5516brightnesssensorOptional)
 * [Usage](#Usage)
 	* [Time page](#Timepage)
 		* [Flathead short press](#Flatheadshortpress)
@@ -45,17 +46,6 @@
 * [ToDo](#ToDo)
 * [Known issues](#Knownissues)
 * [Changelog](#Changelog)
-	* [2025.x.x.x](#x.x.x)
-	* [2025.9.7.1](#)
-	* [2025.8.25.2](#-1)
-	* [2025.8.25.1](#-1)
-	* [2025.7.14.1](#-1)
-	* [2025.4.24.1](#-1)
-	* [2025.4.8.1](#-1)
-	* [2025.2.23.1](#-1)
-	* [2025.2.15.1](#-1)
-	* [2025.2.14.1](#-1)
-	* [2025.2.13.1](#-1)
 
 ## <a name='What'></a>What?
 ESPHome with Home Assistant integration?! "No shit, Sherlock". Well yes, all ESPHome has got HA integration, but SOAS has features that enables you to have HA automations based on your alarm time. So automations can be triggered based on the alarm time set on the alarm clock. There are 4 switches that will switch relative to the alarm time, you have the choice to enable the HA switch whether the alarm will sound or not. So the alarm does not have to sound for the HA automation to be triggered.
@@ -110,8 +100,8 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 * [NEO-6M](https://nl.aliexpress.com/item/1005006816514975.html) ~3,- for GPS time sync, this link requires soldering
 * [DS1307](https://de.aliexpress.com/item/1005006984190682.html) ~ €0,50/Pc
 * [RTTTL buzzer](https://de.aliexpress.com/item/1005009658713423.html) ~ €0,16/Pc
-* [GL5516 brightness sensor] (https://de.aliexpress.com/item/4000098897360.html) ~ €0,35/10pcs
-  additional parts needed, see: [GL5516 brightness sensor (Optional)](#GL5516Optional)
+* [GL5516 brightness sensor](https://de.aliexpress.com/item/4000098897360.html) ~ €0,35/10pcs. For additional parts needed, see: [GL5516 brightness sensor (Optional)](#GL5516Optional)
+* Audio Server
 
 ## <a name='Installation'></a>Installation
 
@@ -146,6 +136,8 @@ Connect all dupont cables corresponding the schema's below:
 |------------------|-------|
 | Switch           | GPIO4 |
 | GND              | GND   |
+
+If you are going to add optional modules. Please review those modules for additional overlapping PINs.
 
 Include the config below in your YAML. This one is made for a `ESP32-S3-N16R8`:
 
@@ -240,7 +232,7 @@ Add this to the `substitutions:`
 
 #### <a name='ArduinoFramework'></a>Arduino Framework
 
-The Arduino framework provides a simpeler `media_player` component, so to have a fallback you will need something like a RTTL buzzer. Another downside is that it does not report errors the way the ESP-IDF framework reports errors. Therefor it's more difficult to detect if the stream is playing. With the `Alarm on local after seconds` number it is possible to force the local alarm after a period.
+The Arduino framework provides a simpeler `media_player` component, so to have a fallback to a non internet stream you will need something like the Audio Server or RTTL buzzer. Another downside is that it does not report errors the way the ESP-IDF framework reports errors. Therefor it's more difficult to detect if the stream is playing. With the `Alarm on local after seconds` number it is possible to force the local alarm after the defined seconds.
 
 Edit the YAML and make sure the `packages` and `esp32` at least contains the code from below.
 
@@ -256,6 +248,18 @@ esp32:
     type: arduino
   flash_size: 16MB
 ```
+
+#### <a name='AudioServerOptional'></a>Audio Server (Optional)
+
+Created just for the Arduino framework to have a local file available. This local file is for when internet is not available. For this server to work, SOAS must have been connected to WiFi. This method does not work directly after reboot when WiFi is not available.
+
+Add this to the `substitutions:`
+
+``` yaml
+  alarm_file: alarm.flac
+```
+
+Add `alarm-clock-audio-server.yaml` to the `files:` property of `packages`.
 
 #### <a name='GPSOptional'></a>GPS (Optional)
 
@@ -340,11 +344,11 @@ For additional tunes, see `alarm-clock-rtttl-additional-tunes.txt`. You can add 
 
 Add `alarm-clock-rtttl.yaml` to the `files:` property of `packages`.
 
-#### <a name='GL5516Optional'></a>GL5516 brightness sensor (Optional)
+#### <a name='GL5516brightnesssensorOptional'></a>GL5516 brightness sensor (Optional)
 
-With an added GL5516 LDR ,the clock can adjust the display contrast automatically based on the room brightness.
+With an added GL5516 LDR, the clock can adjust the display contrast automatically based on the room brightness.
 
-For better performance i recommend also:
+For better performance it is recommend to add the following:
  - Capacitors: 2x 100nF , 1x 10µF & 1x 1µF
  - Resistors: 1x 10kOhm & 1x 100 Ohm
 
@@ -352,9 +356,9 @@ Please note:
 I have not calibrated the sensor (schematic, placement, ...) nor done extensive research on this.
 The lux value may not be accurate! In my case it shold just set the display contrast, based on room brightness.
 
-The following schematic i have "borrowed" from the Ulantzi TC001 clock:
+The following schematic are "borrowed" from the Ulantzi TC001 clock:
 
-´´´
+```
 3V3 - GL5516 ------- 10k ------- GND
 |                |
 10uF & 100nF     1uF & 100nF - GND
@@ -362,20 +366,20 @@ The following schematic i have "borrowed" from the Ulantzi TC001 clock:
 |                100 Ohm
 |                |
 GND              SENSE (ESP32 GPIO14)
-´´´
+```
 
 Connect it to the ESP32:
 
-| GL5516   | ESP32       |
-|----------|-------------|
-| SENSE    | GPIO14      | 
-| GND      | GND         |
-| 3V3      | 3V3         |
+| GL5516 | ESP32  |
+|--------|--------|
+| SENSE  | GPIO14 |
+| GND    | GND    |
+| 3V3    | 3V3    |
 
 Here is a picture with the sensor installed:
 [Picture of an installed GL5516](images/gl5516_ldr_installed.jpg)
 
-I recommend to use some clear plastic (in my case an clear furniture sticker) and allign the ldr inside.
+It is recommend to use some clear plastic (in the picture a case of a clear furniture sticker is used) and allign the ldr inside.
 
 Add this to the `substitutions:`
 
@@ -388,9 +392,10 @@ Add this to the `substitutions:`
   aab_scale: 2.5        # scale of abb [Picture of an installed GL5516](images/gl5516_ldr_installed)
   aab_offset: 0
 ```
+
 You can adjust the above values to you liking.
 I found the above fit my needs (sensor, position in the room, ...) regarding auto-adjust brightness.
-A diagram for aab_scale value is here [aab_scale value diagram for GL5516](gl5516_ldr_scale_diagram.jpg)
+A diagram for `aab_scale` value is here [aab_scale value diagram for GL5516](gl5516_ldr_scale_diagram.jpg)
 
 Add `alarm-clock-gl5516.yaml` to the `files:` property of `packages`.
 
@@ -540,11 +545,12 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 ### <a name='x.x.x'></a>2025.x.x.x
 - **BREAKING** SOAS now supports Arduino and the ESP-IDF framework. You will need to configure your SOAS accordingly. Please review the modules sestion
 - **BREAKING** Home Assistant # time, snooze time and sleep timer are changed to datetime or time components
-- RTTTL module support
-- DS1307 module support
-- GL5516 module support (Contrast based on room brightness)
-- Support for local alarm on, even when the alarm is sounding
+- RTTTL module support, thanks @popy24
+- DS1307 module support, thanks @popy24
+- GL5516 module support (Contrast based on room brightness), thanks @popy24
+- Support for local alarm on, even when the alarm is sounding, see `Alarm on local after seconds`
 - Improved `night_mode` detection
+- Audio Server, thanks @randellmatt
 - Documentation updates
 
 ### <a name=''></a>2025.9.7.1

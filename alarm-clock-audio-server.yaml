@@ -1,9 +1,9 @@
 # Audio Server Module - replaces RTTTL buzzer for local backup alarm
 
 external_components:
-  - source: 
+  - source:
       type: git
-      url: https://github.com/randellmatt/SOAS 
+      url: https://github.com/Skons/SOAS
       ref: dev
     components: [simple_audio_server]
 

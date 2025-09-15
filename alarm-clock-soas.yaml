@@ -576,18 +576,6 @@ sensor:
                           - script.execute:
                               id: rotary_encoder_script
                               clockwise: true
-  - platform: template
-    id: contrast_force_percent
-    name: "Contrast Force Percent"
-    unit_of_measurement: "%"
-    icon: mdi:contrast
-    update_interval: 10s
-    lambda: |-
-      if (id(contrast_force) < 0.0f) {
-        return NAN;
-      } else {
-        return id(contrast_force) * 100.0f;
-      }
 
 binary_sensor:
   - name: "Alarm off"
@@ -890,9 +878,6 @@ binary_sensor:
                       else {
                         id(reset_page_script_no_timeout).execute();
                       }
-                    }
-                    else if (current_page_value == 12) { //sleep timer page
-                      id(reset_page_script_no_timeout).execute();
                     }
 
 select:
@@ -1866,11 +1851,6 @@ display:
           id(current_page_id) = 11;
       - id: page12 #Volume page
         lambda: |-
-          if (!id(display_on).state) {
-            // Turn the whole display off
-            it.fill(COLOR_OFF);
-            return;
-          }
           it.printf(0, (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F057E");
           int value = id(alarm_volume).state;
           it.printf(it.get_width()/2, (it.get_height()/2), id(robotomedium40), TextAlign::CENTER, "%i", value);
@@ -2480,7 +2460,7 @@ script:
               id(play_url).execute();
             }
             else if (id(alarm_on).state) {
-              ESP_LOGW("media_player_watchdog", "Failed to start stream, enabling announcement to force alarm sound");
+              ESP_LOGW("media_player_watchdog", "Failed to start stream, enabling alarm_on_local");
               id(alarm_on_local).turn_on();
             }
             else if (id(music_on).state) {
