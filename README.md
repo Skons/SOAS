@@ -51,13 +51,12 @@
 ESPHome with Home Assistant integration?! "No shit, Sherlock". Well yes, all ESPHome has got HA integration, but SOAS has features that enables you to have HA automations based on your alarm time. So automations can be triggered based on the alarm time set on the alarm clock. There are 4 switches that will switch relative to the alarm time, you have the choice to enable the HA switch whether the alarm will sound or not. So the alarm does not have to sound for the HA automation to be triggered.
 
 ## <a name='Why'></a>Why?
-This alarm clock is customizable, full featured and smart for under €35,-. It's a clock that can be managed through Home Assistant and (mostly) on the clock itself. The clock can be set while your partner is asleep, a tradional clock could be making noise. And, because of the smart features, you could for instance enable the heating in your home 15 minutes before the alarm sets off. Especially when your wake up schedule is not regular, this clock can make automations efficient by associating the triggers with your alarm time.
+This alarm clock is customizable, full featured and smart for under €25,-. It's a clock that can be managed through Home Assistant and (mostly) on the clock itself. The clock can be set while your partner is asleep, a tradional clock could be making noise. And, because of the smart features, you could for instance enable the heating in your home 15 minutes before the alarm sets off. Especially when your wake up schedule is not regular, this clock can make automations efficient by associating the triggers with your alarm time.
 
 ## <a name='Features'></a>Features
 * Alarm based on time.
 * Different display modes so there is more or less light emitted by the clock.
 * Contrast based on day or night with smooth dimming
-* Contrast based on brightness in the room (Optional)
 * 4 Home Assistant integrated switches that switch based on the alarm time, alarm does not have to sound. These switches can be switched manually on the clock itself.
 * Customizable sleep timer.
 * Customizable snooze timer.
@@ -65,7 +64,6 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 * Decent sound.
 * Ability to hide the clock
 * Volume increase of the alarm after a defined time of alarming
-* Local file as fallback when internet is not available
 * Ability to switch off display completely
   - Display is switched on every alarm.
 * Ability to "Display on/off automatically"
@@ -78,10 +76,17 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 * Time sync with GPS for when internet is not available
 * Time backup with DS1307 rtc module internet is not available
 * Local buzzer playback with service and as fallback when internet is not availabl
+* Contrast based on brightness in the room
+* Local file as fallback when internet is not available
+  - Integrated in the ESP-IDF framework, but has stability issues
+  - Audio server for the arduino framework, with the disadvantage that WiFi must have been connected for this to work
 
 ## <a name='Requirements'></a>Requirements
 * < €25,-
 * 3d printer (not included in the price)
+* Dupont cables
+* PLA
+* Glue
 * [ESP32-S3-N16R8](https://nl.aliexpress.com/item/1005006418608267.html) ~ €6,-
 * Oled screen
   - [SH1106](https://nl.aliexpress.com/item/1005007253095259.html) (128x64) ~ €2,50
@@ -90,22 +95,19 @@ This alarm clock is customizable, full featured and smart for under €35,-. It'
 * [3W speaker](https://nl.aliexpress.com/item/32593991938.html) ~ €3,-
 * [Rotary button](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
 * [Flat head button](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
-* Dupont cables
-* PLA
-* Glue
 
 ## <a name='Optional'></a>Optional
 
-* A bit of soldering is not required, but the ground has to be shared so it is nice to solder that one. Depending on your rotary button, you maybe also need to do a little bit of soldering
+* A bit of soldering is not required, but the ground has to be shared so it is nice to solder those. Depending on your rotary button, you maybe also need to do a little bit of soldering
 * [NEO-6M](https://nl.aliexpress.com/item/1005006816514975.html) ~3,- for GPS time sync, this link requires soldering
 * [DS1307](https://de.aliexpress.com/item/1005006984190682.html) ~ €0,50/Pc
 * [RTTTL buzzer](https://de.aliexpress.com/item/1005009658713423.html) ~ €0,16/Pc
 * [GL5516 brightness sensor](https://de.aliexpress.com/item/4000098897360.html) ~ €0,35/10pcs. For additional parts needed, see: [GL5516 brightness sensor (Optional)](#GL5516Optional)
-* Audio Server
+* Audio Server, to have local file support with the Arduino framework
 
 ## <a name='Installation'></a>Installation
 
-3d print [these](https://www.thingiverse.com/thing:7091731) files.
+3d print [these](https://www.thingiverse.com/thing:7091731) STL files.
 
 Connect all dupont cables corresponding the schema's below:
 
@@ -139,7 +141,7 @@ Connect all dupont cables corresponding the schema's below:
 
 If you are going to add optional modules. Please review those modules for additional overlapping PINs.
 
-Include the config below in your YAML. This one is made for a `ESP32-S3-N16R8`:
+Include the config below in your YAML. This one is made for a `ESP32-S3-N16R8`. Take a look at the examples to view a complete yaml:
 
 ```yaml
 substitutions:
@@ -232,7 +234,7 @@ Add this to the `substitutions:`
 
 #### <a name='ArduinoFramework'></a>Arduino Framework
 
-The Arduino framework provides a simpeler `media_player` component, so to have a fallback to a non internet stream you will need something like the Audio Server or RTTL buzzer. Another downside is that it does not report errors the way the ESP-IDF framework reports errors. Therefor it's more difficult to detect if the stream is playing. With the `Alarm on local after seconds` number it is possible to force the local alarm after the defined seconds.
+The Arduino framework provides a simpeler `media_player` component, so to have a fallback to a non internet stream you will need something like the Audio Server or RTTL buzzer. Another downside is that the `media_player` does not report errors the way the ESP-IDF framework reports errors. Therefor it's more difficult to detect if the stream is playing. With the `Alarm on local after seconds` number it is possible to force the local alarm after the defined seconds.
 
 Edit the YAML and make sure the `packages` and `esp32` at least contains the code from below.
 
@@ -251,7 +253,7 @@ esp32:
 
 #### <a name='AudioServerOptional'></a>Audio Server (Optional)
 
-Created just for the Arduino framework to have a local file available. This local file is for when internet is not available. For this server to work, SOAS must have been connected to WiFi. This method does not work directly after reboot when WiFi is not available.
+Created just for the Arduino framework to have a local file available when internet/wifi is down. This local file is for when internet is not available. For this server to work, SOAS must have been connected to WiFi. This method does not work directly after reboot when WiFi is not available.
 
 Add this to the `substitutions:`
 
@@ -263,7 +265,7 @@ Add `alarm-clock-audio-server.yaml` to the `files:` property of `packages`.
 
 #### <a name='GPSOptional'></a>GPS (Optional)
 
-Instead of using internet time (NTP), it is possible to use GPS which does not require internet. The NEO-6M module is supported. Keep in mind that it's not the fastest method, it could take some time before the GPS sattelites have been found. It's accuracy is very high though.
+Instead of using internet time (NTP), it is possible to use GPS which does not require internet. The NEO-6M module is supported. Keep in mind that it's not the fastest method, it could take some time before the GPS sattelites have been found. It's accuracy is very high though. There is also an STL file available to attach this component to the case.
 
 | NEO-6M | ESP32       |
 |--------|-------------|
@@ -285,7 +287,7 @@ Add `alarm-clock-gps.yaml` to the `files:` property of `packages`.
 
 #### <a name='DS1307Optional'></a>DS1307 (Optional)
 
-With the DS1307 rtc module the clock keeps the time, also when the power is lost.
+With the DS1307 rtc module the clock keeps the time, also when the power is lost. There is also an STL file available to attach this component to the case.
 
 **No recharge mod**
 
@@ -552,6 +554,7 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 - Improved `night_mode` detection
 - Audio Server, thanks @randellmatt
 - Documentation updates
+- Examples added to the documentation
 
 ### <a name=''></a>2025.9.7.1
 - **ATTENTION** Avoid using GPIO3, which is a JTAG strapping pin. You must attach the wire from MAX98357a LRC <-> from ESP32 GPIO3 to GPIO12 for audio to work again.
