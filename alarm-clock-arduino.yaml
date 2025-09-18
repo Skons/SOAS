@@ -1,0 +1,13 @@
+media_player:
+  - platform: i2s_audio
+    name: Media player alarm
+    id: media_player_alarm
+    dac_type: external
+    i2s_dout_pin: ${i2s_dout_pin}
+    mode: mono
+    on_play:
+      - logger.log: "Playback started!"
+    on_pause:
+      - logger.log: "Playback paused!"
+    on_idle:
+      - logger.log: "Playback finished!"

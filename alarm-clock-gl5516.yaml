@@ -1,0 +1,62 @@
+sensor:
+  - platform: template
+    id: contrast_force_percent
+    name: "Contrast Force Percent"
+    unit_of_measurement: "%"
+    icon: mdi:contrast
+    update_interval: 10s
+    lambda: |-
+      if (id(contrast_force) < 0.0f) {
+        return NAN;
+      } else {
+        return id(contrast_force) * 100.0f;
+      }
+  - platform: adc
+    id: light_sensor
+    name: "Illuminance"
+    pin: $ldr_pin
+    device_class: illuminance
+    update_interval: 10s
+    attenuation: auto
+    unit_of_measurement: lx
+    accuracy_decimals: 0
+    filters:
+      - lambda: |-
+          float lux = (x / 10000.0) * 2000000.0 - 15;
+          if (lux < 0) lux = 0;
+          return lux;
+    on_value:
+      then:
+        - lambda: |-
+            if (id(switch_autobrightness).state) {
+              //ESP_LOGD("light_sensor", "x = : %.2f", x);
+              //int n = x / 4 + $aab_add; // berechneter Zielwert (0-255)
+              int n = (x / $aab_scale) + $aab_offset + $aab_add;
+              if (n > $aab_max) n = $aab_max;
+              if (n < $aab_min) n = $aab_min;
+
+              // convert to 0.0 - 1.0
+              float new_contrast = n / 255.0f;
+
+              float current = id(contrast_current);
+              float delta = new_contrast - current;
+              float diff_percent = (delta / (current > 0.01f ? current : 0.01f)) * 100.0f;
+
+              // just set contrast when there is a significant change
+              if (abs(diff_percent) > 2.0f) {
+                //ESP_LOGD("light_sensor", "new contrast: %.2f", new_contrast);
+                id(contrast_force) = new_contrast;
+                id(smooth_contrast).execute();
+              }
+            }
+
+switch:
+  - platform: template
+    name: "Auto-Adjust Brightness"
+    id: switch_autobrightness
+    icon: mdi:brightness-auto
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_off_action:
+      lambda: |-
+        id(contrast_force) = -1.0;

@@ -1,0 +1,27 @@
+time:
+  - id: !extend ntp
+    on_time_sync:
+      then:
+        - logger.log: "NTP time synced -> write RTC to DS1307!"
+        - ds1307.write_time:
+            id: ds1307_time
+
+  - platform: ds1307
+    update_interval: never
+    id: ds1307_time
+    timezone: ${timezone}
+
+esphome:
+  on_boot:
+    - priority: 600
+      then:
+        # read the RTC time once when the system boots
+        - ds1307.read_time:
+            id: ds1307_time
+        - if:
+            condition:
+              time.has_time:
+            then:
+            # time readed succesfully
+              - lambda: |-
+                  id(time_sync_done) = true;
