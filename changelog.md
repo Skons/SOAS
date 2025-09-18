@@ -1,5 +1,8 @@
 # Changelog
 
+## 2025.9.18.2
+- Fix for issue [#30](https://github.com/Skons/SOAS/issues/30)
+
 ## 2025.9.18.1
 - **BREAKING** SOAS now supports Arduino and the ESP-IDF framework. You will need to configure your SOAS accordingly. Please review the modules sestion
 - **BREAKING** Home Assistant # time, snooze time and sleep timer are changed to datetime or time components
