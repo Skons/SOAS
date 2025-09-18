@@ -54,10 +54,9 @@ switch:
       then:
         - rtttl.stop
         - lambda:
-            int iTimestampForAlarmLocal = id(ntp).now().timestamp;
-            std::string sTimestampForAlarmLocal = to_string(iTimestampForAlarmLocal);
-            ESP_LOGD("alarm_on_local", "sTimestampForAlarmLocal %s", sTimestampForAlarmLocal.c_str());
-            id(alarm_off_local_timestamp).publish_state(sTimestampForAlarmLocal);
+            auto call = id(alarm_off_local_timestamp).make_call();
+            call.set_datetime(id(ntp).now().timestamp);
+            call.perform();
     on_turn_on:
       then:
         - switch.turn_on: display_on
