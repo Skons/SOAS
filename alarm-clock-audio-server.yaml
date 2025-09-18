@@ -4,7 +4,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/Skons/SOAS
-      ref: dev
+#      ref: dev
     components: [simple_audio_server]
 
 # Audio file server component
