@@ -1,5 +1,13 @@
 # Changelog
 
+## 2025.9.x.x
+- Added SOAS version as text sensor
+- Top button long press switches to music if alarm is on
+- If `contrast_force` is being set, the contrast page will not be displayed anymore
+- Configuration errors removed from the examples
+- Click prevention in Arduino framework
+- Documentation updates
+
 ## 2025.9.18.2
 - Fix for issue [#30](https://github.com/Skons/SOAS/issues/30)
 

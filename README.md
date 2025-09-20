@@ -21,7 +21,7 @@
 		* [GL5516 brightness sensor (Optional)](#GL5516brightnesssensorOptional)
 * [Usage](#Usage)
 	* [Time page](#Timepage)
-		* [Flathead short press](#Flatheadshortpress)
+		* [Top button short press](#topbuttonshortpress)
 		* [Rotary single click](#Rotarysingleclick)
 		* [Rotary double click](#Rotarydoubleclick)
 		* [Rotary triple click](#Rotarytripleclick)
@@ -93,8 +93,10 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
   - [SH1107](https://nl.aliexpress.com/item/1005005313150711.html) (128x128) ~ €6,-
 * MAX98357a amplifier ~ €3,-
 * [3W speaker](https://nl.aliexpress.com/item/32593991938.html) ~ €3,-
-* [Rotary button](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
-* [Flat head button](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
+* [Rotary button, Half 20mm](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
+* A button to be used on top of the clock, the following are supported:
+  - [Flat head button](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
+  - [Micro tactile switch, 6x6x5](https://nl.aliexpress.com/item/1005004971266223.html) < 0,10 per piece
 
 ## <a name='Optional'></a>Optional
 
@@ -134,10 +136,10 @@ Connect all dupont cables corresponding the schema's below:
 | GND       | GND     |
 | Vin       | 5v / 3v |
 
-| Flat head button | ESP32 |
-|------------------|-------|
-| Switch           | GPIO4 |
-| GND              | GND   |
+| Top button | ESP32 |
+|------------|-------|
+| Switch     | GPIO4 |
+| GND        | GND   |
 
 If you are going to add optional modules. Please review those modules for additional overlapping PINs.
 
@@ -234,7 +236,7 @@ Add this to the `substitutions:`
 
 #### <a name='ArduinoFramework'></a>Arduino Framework
 
-The Arduino framework provides a simpeler `media_player` component, so to have a fallback to a non internet stream you will need something like the Audio Server or RTTL buzzer. Another downside is that the `media_player` does not report errors the way the ESP-IDF framework reports errors. Therefor it's more difficult to detect if the stream is playing. With the `Alarm on local after seconds` number it is possible to force the local alarm after the defined seconds.
+The Arduino framework provides a simpeler `media_player` component, so to have a fallback to a non internet stream you will need something like the Audio Server or RTTL buzzer. Another downside is that the `media_player` does not report errors the way the ESP-IDF framework reports errors. Therefor it's more difficult to detect if the stream is playing. With the `alarm_on_local_after_seconds` number it is possible to force the local alarm after the defined seconds, due to bad error reporting it is advised to use this number.
 
 Edit the YAML and make sure the `packages` and `esp32` at least contains the code from below.
 
@@ -280,7 +282,6 @@ Add this to the `substitutions:`
   #NEO-6M
   gps_tx_pin: GPIO43
   gps_rx_pin: GPIO44
-  timezone: Europe/Amsterdam
 ```
 
 Add `alarm-clock-gps.yaml` to the `files:` property of `packages`.
@@ -309,7 +310,7 @@ Add `alarm-clock-ds1307.yaml` to the `files:` property of `packages`.
 
 **Important: Only use this module in combination with the Arduino framework module**
 
-With an added buzzer, you can use this to play nostalgia rtttl sound (like on older phones or pc system speaker). The main goal is to use it as an fallback when internet is down, or the music stream malfunctions.
+With an added buzzer, you can use this to play nostalgia rtttl sound (like on older phones or pc system speaker). The main goal is to use it as an fallback when internet is down, or the music stream malfunctions. The esp-idf framework has got local file function and therefor this module does not add any functionality in that case.
 
 | BUZZER | ESP32  |
 |--------|--------|
@@ -407,10 +408,6 @@ Add `alarm-clock-gl5516.yaml` to the `files:` property of `packages`.
 
 * Automatic enable of buzzer after defined period - This enables the buzzer after a period the alarm has been on. Failure detection with the Arduino framework is difficult due to the lack of good error reporting
 
-###### <a name='Flatheadshortpress'></a>Flathead long press
-
-When the buzzer is sounding, you can disable the buzzer with a long press. This can be handy when the music is on, and you want to listen without the buzzer interrupting.
-
 ###### Test a tune
 
 To test a tune, you can use the HA service "tune" to play directly on the buzzer of the device, like this example:
@@ -425,9 +422,9 @@ data:
 
 The rotary button is the button for accessing and editing configuration. When on a page, and there is no blinking of a configuration, you will automatically be redirected to the time page after 5 seconds of inactivity. The edit mode, blinking of a configuration, needs to be exited to return back to the time page. Entering and exiting the edit mode is done by single clicking the rotary button.
 
-### <a name='Timepage'></a>Time page
+## Top button
 
-#### <a name='Flatheadshortpress'></a>Flathead short press
+### <a name='topbuttonshortpress'></a>Top button short press
 When the alarm, sleep timer and snooze are off, single press will switch the music on. If the sleep timer is enabled, the sleep timer will also switch to on.
 
 If the sleep timer is on and the music is on, the music will be switched off.
@@ -438,6 +435,12 @@ If the sleep timer is on and the music is on, the music will be switched off.
 When the alarm is on, snooze will switch on and the alarm will go to off.
 
 When snooze is on, the snooze will be switched off on single press.
+
+### <a name='topbuttonlongpress'></a>Top button long press
+
+When the alarm is on, you can switch to music playing. This is usefull when the local alarm kicks in but the music was working fine, this is certainly the case with `alarm_on_local_after_seconds`.
+
+### <a name='Timepage'></a>Time page
 
 #### <a name='Rotarysingleclick'></a>Rotary single click
 Single click of the rotary button toggles the alarm.

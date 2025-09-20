@@ -1,3 +1,23 @@
+esphome:
+  on_boot:
+    - priority: 600
+      then: #clicking workaround
+        - wait_until:
+            wifi.connected:
+        - if:
+            condition:
+              - and:
+                - switch.is_off: alarm_on
+                - switch.is_off: music_on
+            then: #play music for a short period
+              - logger.log: "Alarm and music where off before reboot, preventing clicking sound"
+              - media_player.volume_set: 0
+              - media_player.play_media: !lambda return id(alarm_stream_url).state.c_str();
+              - wait_until:
+                  media_player.is_playing:
+              - media_player.stop:
+              - media_player.volume_set: !lambda "return (id(alarm_volume).state/100);"
+
 media_player:
   - platform: i2s_audio
     name: Media player alarm
