@@ -340,7 +340,7 @@ number:
     optimistic: true
     restore_value: true
     initial_value: 10
-    min_value: 10
+    min_value: 1
     max_value: 180
     step: 5
     mode: slider
@@ -382,7 +382,7 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.9.19.2"};
+    lambda: return {"2025.9.22.1"};
     update_interval: 2147483647s
 
   # - name: "Debug logger"
@@ -598,13 +598,27 @@ binary_sensor:
         - ON for at least 2s
         - OFF for at least 0.5s
         then:
-          - lambda: |-
-              if (id(display_on_off_automatically).state && !id(display_on).state) {
-                id(display_on).turn_on();
-              } else if (id(alarm_on).state) {
-                id(alarm_on).turn_off();
-                id(music_on).turn_on();
-              }
+          - switch.turn_off: alarm_on_local
+      - timing: #double click
+        - ON for at most 0.5s
+        - OFF for at most 0.5s
+        - ON for at most 0.5s
+        - OFF for at least 0.5s
+        then:
+          - logger.log: alarm_off long press
+          - if:
+              condition:
+                and:
+                  - switch.is_on: display_on_off_automatically
+                  - switch.is_off: display_on
+              then:
+                - switch.turn_on: display_on
+                - script.execute:
+                    id: display_off_script
+              else:
+                - switch.turn_off: alarm_on
+                - delay: 1s #give the media_player a break
+                - switch.turn_on: music_on
       - timing: #single click
         - ON for at most ${alarm_off_button_single_click_time}
         - OFF for at least 0.5s
@@ -613,26 +627,27 @@ binary_sensor:
               id: display_off_script
           - lambda: |-
               if (id(display_on_off_automatically).state && !id(display_on).state) {
+                ESP_LOGD("alarm_off", "single click display on");
                 id(display_on).turn_on();
               } else {
-                if (id(alarm_on).state && !id(snooze_on).state) {
+                if (id(alarm_on).state) {
+                  ESP_LOGD("alarm_off", "single click snooze on");
                   id(snooze_on).turn_on();
                 }
                 else if (id(snooze_on).state) {
+                  ESP_LOGD("alarm_off", "single click snooze off");
                   id(snooze_on).turn_off();
                 }
                 else if (id(sleep_timer_on).state) {
-                  id(sleep_timer_on).turn_off();
+                  ESP_LOGD("alarm_off", "single click music off");
                   id(music_on).turn_off();
                 }
-                else if (!id(alarm_on).state && id(sleep_timer_enabled).state) {
-                  id(music_on).turn_on();
-                  id(sleep_timer_on).turn_on();
-                }
                 else if (!id(music_on).state) {
+                  ESP_LOGD("alarm_off", "single click music on");
                   id(music_on).turn_on();
                 }
                 else if (id(music_on).state) {
+                  ESP_LOGD("alarm_off", "single click music_on off");
                   id(music_on).turn_off();
                 }
               }
@@ -962,7 +977,7 @@ switch:
       then:
         - switch.turn_on: display_on
         - script.stop: display_off_script
-  - name: "Display off, on snooze allowed"
+  - name: "Display off while snooze on"
     platform: template
     id: display_off_on_snooze_allowed
     optimistic: true
@@ -975,7 +990,7 @@ switch:
       then:
         - script.execute:
             id: display_off_script
-  - name: "Display off, on music allowed"
+  - name: "Display off while music on"
     platform: template
     id: display_off_on_music_allowed
     optimistic: true
@@ -1012,9 +1027,7 @@ switch:
             then:
               - if:
                   condition:
-                    and:
-                      - switch.is_on: alarm_on
-                      - switch.is_off: sleep_timer_on
+                    switch.is_on: alarm_on
                   then:
                     - script.execute:
                         id: set_schedule_trigger_time_script
@@ -1148,15 +1161,15 @@ switch:
             switch.is_off: music_on
           then:
             - if:
-                condition:
+                condition: #know if the basics are initialized
                   lambda: 'return (id(time_sync_done) == true);'
                 then:
                   - media_player.stop:
-            - script.execute:
-                id: set_alarm_last_off
-            - script.execute: #set volume back to default
-                id: set_volume
-                volume: !lambda "return id(alarm_volume).state;"
+                  - script.execute:
+                      id: set_alarm_last_off
+                  - script.execute: #set volume back to default
+                      id: set_volume
+                      volume: !lambda "return id(alarm_volume).state;"
   - name: "Alarm on local"
     platform: template
     id: alarm_on_local
@@ -1187,6 +1200,12 @@ switch:
                   - logger.log: "Time sync is done, currently no playback, enabling playback"
                   - script.execute:
                       id: play_url
+                  - if:
+                      condition:
+                        switch.is_on: sleep_timer_enabled
+                      then:
+                        - logger.log: "Playback enabled, sleep_timer_enabled is on, enabling sleep_timer_on"
+                        - switch.turn_on: sleep_timer_on
     on_turn_off:
       - script.execute:
           id: display_off_script
@@ -1200,6 +1219,11 @@ switch:
             - script.execute: #set volume back to default
                 id: set_volume
                 volume: !lambda "return id(alarm_volume).state;"
+            - if:
+                condition:
+                  switch.is_on: sleep_timer_on
+                then:
+                  - switch.turn_off: sleep_timer_on
   - name: "Restart"
     platform: restart
     id: clock_restart_switch
@@ -1230,11 +1254,15 @@ switch:
             condition:
               lambda: 'return (id(time_sync_done) == true);'
             then:
-              - switch.turn_off: music_on
               - lambda:
                   auto call = id(sleep_timer_timestamp).make_call();
                   call.set_datetime(id(ntp).now().timestamp);
                   call.perform();
+        - if: #only off when on
+            condition:
+              switch.is_on: music_on
+            then:
+              switch.turn_off: music_on
   - name: "Clock on display"
     platform: template
     id: clock_on_display
@@ -1320,7 +1348,7 @@ display:
           if (id(music_on).state && shouldBlink) { //music icon
             it.printf(0, 0, id(robotomedium20), TextAlign::LEFT, "\U000F0387");
           }
-          else if (id(alarm_on).state && !id(sleep_timer_on).state) { //alarm on
+          else if (id(alarm_on).state) { //alarm on
             if (shouldBlink) {
               it.printf(0, 0, id(robotomedium20), TextAlign::LEFT, "\U000F0E71");
             }
@@ -2483,7 +2511,7 @@ script:
             int sleepTimerTimestamp =  eSleepTimerTimestamp.timestamp;
             //ESP_LOGD("check_alarms", "current %i sleeptimer %i", currentTimeForAlarmTimeStamp, sleepTimerTimestamp);
             if (currentTimeForAlarmTimeStamp >= sleepTimerTimestamp) {
-              id(sleep_timer_on).turn_off();
+              id(music_on).turn_off();
               ESP_LOGD("check_alarms", "Sleep timer disabled");
             }
           }

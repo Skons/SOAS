@@ -436,7 +436,7 @@ When the alarm is on, snooze will switch on and the alarm will go to off.
 
 When snooze is on, the snooze will be switched off on single press.
 
-### <a name='topbuttonlongpress'></a>Top button long press
+### <a name='topbuttondoublepress'></a>Top button double press
 
 When the alarm is on, you can switch to music playing. This is usefull when the local alarm kicks in but the music was working fine, this is certainly the case with `alarm_on_local_after_seconds`.
 

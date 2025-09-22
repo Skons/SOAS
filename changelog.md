@@ -1,8 +1,10 @@
 # Changelog
 
 ## 2025.9.x.x
+- **BREAKING** Top button long press switched to double press. Works better with the tactile button
 - Added SOAS version as text sensor
-- Top button long press switches to music if alarm is on
+- Refined code due to the introduction of `music_on` in version 2025.8.25.1
+- `music_on` now handles `sleep_timer_on`
 - If `contrast_force` is being set, the contrast page will not be displayed anymore
 - Configuration errors removed from the examples
 - Click prevention in Arduino framework
