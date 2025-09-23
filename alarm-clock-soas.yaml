@@ -119,6 +119,14 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  - id: wifi_initially_connected
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: wifi_connected
+    type: bool
+    restore_value: no
+    initial_value: 'false'
   - id: alarm_last_off
     type: int
     restore_value: yes
@@ -199,6 +207,15 @@ time:
 sun:
   latitude: ${sun_latitude}
   longitude: ${sun_longitude}
+
+wifi:
+  on_connect:
+    lambda:
+      id(wifi_initially_connected) = true;
+      id(wifi_connected) = true;
+  on_disconnect:
+    lambda:
+      id(wifi_connected) = false;
 
 number:
   - name: Screen contrast day
@@ -382,7 +399,7 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.9.22.1"};
+    lambda: return {"2025.9.23.1"};
     update_interval: 2147483647s
 
   # - name: "Debug logger"
@@ -605,7 +622,7 @@ binary_sensor:
         - ON for at most 0.5s
         - OFF for at least 0.5s
         then:
-          - logger.log: alarm_off long press
+          - logger.log: alarm_off double press
           - if:
               condition:
                 and:
@@ -1150,8 +1167,14 @@ switch:
           else:
             - wait_until:
                 lambda: 'return (id(time_sync_done) == true);'
-            - script.execute:
-                id: play_url
+            - if:
+                condition:
+                  lambda: 'return !id(wifi_initially_connected);'
+                then:
+                  switch.turn_on: alarm_on_local
+                else:
+                  - script.execute:
+                      id: play_url
     on_turn_off:
       - script.execute:
           id: display_off_script
@@ -1196,8 +1219,8 @@ switch:
                   - media_player.is_idle:
                 then:
                   - wait_until:
-                      lambda: 'return (id(time_sync_done) == true);'
-                  - logger.log: "Time sync is done, currently no playback, enabling playback"
+                      lambda: 'return (id(wifi_connected) == true);'
+                  - logger.log: "Wifi is available, currently no playback, enabling playback"
                   - script.execute:
                       id: play_url
                   - if:
@@ -1415,7 +1438,7 @@ display:
           }
 
           //wifi
-          if (isnan(id(wifi_signal_percent).state)) {
+          if (isnan(id(wifi_signal_percent).state) || !id(wifi_connected)) {
             it.printf(it.get_width(), 0, id(robotomedium20), TextAlign::RIGHT, "\U000F092E"); // WifiStrengthOffOutline
           }
           else if (displayMode == 0) {
@@ -2361,24 +2384,17 @@ script:
             }
           }
           else if (index == 6) {
-            esphome::ESPTime eSnoozeTimestamp = id(snooze_timestamp).state_as_esptime();
-            int snoozeTimestamp = eSnoozeTimestamp.timestamp;
-
             //the currentTimestamp is based on the start of the current minute
             //add 60 seconds for the next minute, this only happens when snooze is set to 1 minute
-            if (currentTimestamp < snoozeTimestamp && id(snooze_duration).state == 1) {
-              currentTimestamp += 60;
+            if (iNewScheduleTimeStamp < currentTimestamp && id(snooze_duration).state == 1) {
+              ESP_LOGD("set_schedule_trigger_time_script", "iNewScheduleTimeStamp with %i is less then currentTimestamp with %i. Adding 60 seconds", iNewScheduleTimeStamp, currentTimestamp);
+              iNewScheduleTimeStamp += 60;
             }
 
-            if (currentTimestamp > snoozeTimestamp) {
-              ESP_LOGD("set_schedule_trigger_time_script", "Updating snooze time with %i", iNewScheduleTimeStamp);
-              auto call = id(snooze_timestamp).make_call();
-              call.set_datetime(iNewScheduleTimeStamp);
-              call.perform();
-            }
-            else {
-              ESP_LOGD("set_schedule_trigger_time_script", "Not updating snooze time, current time is before snooze");
-            }
+            ESP_LOGD("set_schedule_trigger_time_script", "Updating snooze time with %i", iNewScheduleTimeStamp);
+            auto call = id(snooze_timestamp).make_call();
+            call.set_datetime(iNewScheduleTimeStamp);
+            call.perform();
           }
   - id: check_alarms
     mode: single

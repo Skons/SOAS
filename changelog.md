@@ -9,6 +9,9 @@
 - Configuration errors removed from the examples
 - Click prevention in Arduino framework
 - Documentation updates
+- Resolved snooze issue [#33](https://github.com/Skons/SOAS/issues/33)
+- Added wifi detection with global variables
+- Music and alarm do not wait until time has synced, but wifi has been connected
 
 ## 2025.9.18.2
 - Fix for issue [#30](https://github.com/Skons/SOAS/issues/30)
