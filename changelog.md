@@ -10,8 +10,11 @@
 - Click prevention in Arduino framework
 - Documentation updates
 - Resolved snooze issue [#33](https://github.com/Skons/SOAS/issues/33)
+- Resolved sleep timer issue
 - Added wifi detection with global variables
 - Music and alarm do not wait until time has synced, but wifi has been connected
+- GL5516 auto brightness and illuminance offcet number, thanks @popy24
+- Switches for display off during snooze and music, thanks @popy24
 
 ## 2025.9.18.2
 - Fix for issue [#30](https://github.com/Skons/SOAS/issues/30)

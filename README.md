@@ -93,7 +93,7 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
   - [SH1107](https://nl.aliexpress.com/item/1005005313150711.html) (128x128) ~ €6,-
 * MAX98357a amplifier ~ €3,-
 * [3W speaker](https://nl.aliexpress.com/item/32593991938.html) ~ €3,-
-* [Rotary button, Half 20mm](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
+* [Rotary button, EC11 W Half 20mm](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
 * A button to be used on top of the clock, the following are supported:
   - [Flat head button](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
   - [Micro tactile switch, 6x6x5](https://nl.aliexpress.com/item/1005004971266223.html) < 0,10 per piece
@@ -308,9 +308,11 @@ Add `alarm-clock-ds1307.yaml` to the `files:` property of `packages`.
 
 #### <a name='RTTTLOptional'></a>RTTTL (Optional)
 
-**Important: Only use this module in combination with the Arduino framework module**
+**Important: Only use this module in combination with the Arduino framework module. It overwrites the `alarm_on_local` functionality**
 
-With an added buzzer, you can use this to play nostalgia rtttl sound (like on older phones or pc system speaker). The main goal is to use it as an fallback when internet is down, or the music stream malfunctions. The esp-idf framework has got local file function and therefor this module does not add any functionality in that case.
+With an added buzzer, you can use this to play nostalgia RTTTL sound (like on older phones or pc system speaker). The main goal is to use it as an fallback when internet is down, or the music stream malfunctions. The esp-idf framework has got local file function, this module does not add any functionality in that case instead it overwrites the `alarm_on_local` functionality which removes the local file support.
+
+The choice is between `alarm-clock-rtttl.yaml` or `alarm-clock-rtttl-nowifi.yaml`. Use the first if you do not have local file support (see Audio Server). Use the second if you use local file support. Keep in mind that the RTTTL buzzer will only come in to play when the clock is coming back from power outage, but has not connected with wifi. If the wifi connection has taken place, the Audio Server functions and then this is not needed.
 
 | BUZZER | ESP32  |
 |--------|--------|
@@ -345,7 +347,7 @@ Add this to `select:` (after your stream urls)
 
 For additional tunes, see `alarm-clock-rtttl-additional-tunes.txt`. You can add them instead of the above. Do not add too much, this can crash SOAS.
 
-Add `alarm-clock-rtttl.yaml` to the `files:` property of `packages`.
+Add `alarm-clock-rtttl.yaml` or `alarm-clock-rtttl-nowifi.yaml` to the `files:` property of `packages`.
 
 #### <a name='GL5516brightnesssensorOptional'></a>GL5516 brightness sensor (Optional)
 
