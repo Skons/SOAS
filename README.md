@@ -94,7 +94,7 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
 * MAX98357a amplifier ~ €3,-
 * [3W speaker](https://nl.aliexpress.com/item/32593991938.html) ~ €3,-
 * [Rotary button](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
-* [Flat head button](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
+* [Flat head button(16mm)](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
 
 ## <a name='Optional'></a>Optional
 
