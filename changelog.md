@@ -1,13 +1,14 @@
 # Changelog
 
-## 2025.9.x.x
+## 2025.9.25.1
 - **BREAKING** Top button long press switched to double press. Works better with the tactile button
+- Added triple top button press to be able to test `alarm_on`
 - Added SOAS version as text sensor
 - Refined code due to the introduction of `music_on` in version 2025.8.25.1
 - `music_on` now handles `sleep_timer_on`
 - If `contrast_force` is being set, the contrast page will not be displayed anymore
 - Configuration errors removed from the examples
-- Click prevention in Arduino framework
+- Click sound prevention in Arduino framework
 - Documentation updates
 - Resolved snooze issue [#33](https://github.com/Skons/SOAS/issues/33)
 - Resolved sleep timer issue
@@ -15,6 +16,8 @@
 - Music and alarm do not wait until time has synced, but wifi has been connected
 - GL5516 auto brightness and illuminance offcet number, thanks @popy24
 - Switches for display off during snooze and music, thanks @popy24
+- Added an internal uptime sensor
+- The RTTTL module is splitted into `alarm-clock-rtttl.yaml` and `alarm-clock-rtttl-nowifi.yaml`
 
 ## 2025.9.18.2
 - Fix for issue [#30](https://github.com/Skons/SOAS/issues/30)

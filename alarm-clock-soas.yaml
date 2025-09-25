@@ -399,7 +399,7 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.9.24.1"};
+    lambda: return {"2025.9.25.1"};
     update_interval: 2147483647s
 
   # - name: "Debug logger"
@@ -599,6 +599,11 @@ sensor:
                           - script.execute:
                               id: rotary_encoder_script
                               clockwise: true
+  - platform: uptime
+    id: soas_uptime
+    type: seconds
+    name: Uptime Sensor
+    internal: true
 
 binary_sensor:
   - name: "Alarm off"
@@ -616,6 +621,15 @@ binary_sensor:
         - OFF for at least 0.5s
         then:
           - switch.turn_off: alarm_on_local
+      - timing: #triple click
+        - ON for at most 0.5s
+        - OFF for at most 0.5s
+        - ON for at most 0.5s
+        - OFF for at most 0.5s
+        - ON for at most 0.5s
+        - OFF for at least 0.5s
+        then:
+          - switch.turn_on: alarm_on
       - timing: #double click
         - ON for at most 0.5s
         - OFF for at most 0.5s

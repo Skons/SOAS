@@ -20,8 +20,11 @@
 		* [RTTTL (Optional)](#RTTTLOptional)
 		* [GL5516 brightness sensor (Optional)](#GL5516brightnesssensorOptional)
 * [Usage](#Usage)
+* [Top button](#Topbutton)
+	* [Top button short press](#Topbuttonshortpress)
+	* [Top button double press](#Topbuttondoublepress)
+	* [Top button triple press](#Topbuttontriplepress)
 	* [Time page](#Timepage)
-		* [Top button short press](#topbuttonshortpress)
 		* [Rotary single click](#Rotarysingleclick)
 		* [Rotary double click](#Rotarydoubleclick)
 		* [Rotary triple click](#Rotarytripleclick)
@@ -255,7 +258,9 @@ esp32:
 
 #### <a name='AudioServerOptional'></a>Audio Server (Optional)
 
-Created just for the Arduino framework to have a local file available when internet/wifi is down. This local file is for when internet is not available. For this server to work, SOAS must have been connected to WiFi. This method does not work directly after reboot when WiFi is not available.
+**Important: There are mixed results for this local alarm to function when wifi has not been connected. Sometimes alarm will sound if wifi has not been connected, but it's safe to assume that it does not work. To be safe, use the RTTTL nowifi module**
+
+Created just for the Arduino framework to have a local file available when internet/wifi is down. This local file is for when internet is not available.
 
 Add this to the `substitutions:`
 
@@ -308,11 +313,11 @@ Add `alarm-clock-ds1307.yaml` to the `files:` property of `packages`.
 
 #### <a name='RTTTLOptional'></a>RTTTL (Optional)
 
-**Important: Only use this module in combination with the Arduino framework module. It overwrites the `alarm_on_local` functionality**
+**Important: Only use the `alarm-clock-rtttl.yaml` module only in combination with the Arduino framework module. It overwrites the `alarm_on_local` functionality**
 
-With an added buzzer, you can use this to play nostalgia RTTTL sound (like on older phones or pc system speaker). The main goal is to use it as an fallback when internet is down, or the music stream malfunctions. The esp-idf framework has got local file function, this module does not add any functionality in that case instead it overwrites the `alarm_on_local` functionality which removes the local file support.
+With an added buzzer, you can use this to play nostalgia RTTTL sound (like on older phones or pc system speaker). The main goal is to use it as an fallback when internet is down, or the music stream malfunctions. The esp-idf framework has got local file function, this module does not add any functionality in that case. Instead it overwrites the `alarm_on_local` functionality which removes the local file support.
 
-The choice is between `alarm-clock-rtttl.yaml` or `alarm-clock-rtttl-nowifi.yaml`. Use the first if you do not have local file support (see Audio Server). Use the second if you use local file support. Keep in mind that the RTTTL buzzer will only come in to play when the clock is coming back from power outage, but has not connected with wifi. If the wifi connection has taken place, the Audio Server functions and then this is not needed.
+The choice is between `alarm-clock-rtttl.yaml` or `alarm-clock-rtttl-nowifi.yaml`. Use the first if you do not have local file support (see Audio Server). Use the second if you use local file support. Keep in mind that the RTTTL buzzer will only come in to play when the clock is coming back from power outage, but has not connected with wifi. If the wifi connection has taken place, the Audio Server will function and then the RTTTL buzzer is not needed.
 
 | BUZZER | ESP32  |
 |--------|--------|
@@ -424,9 +429,9 @@ data:
 
 The rotary button is the button for accessing and editing configuration. When on a page, and there is no blinking of a configuration, you will automatically be redirected to the time page after 5 seconds of inactivity. The edit mode, blinking of a configuration, needs to be exited to return back to the time page. Entering and exiting the edit mode is done by single clicking the rotary button.
 
-## Top button
+## <a name='Topbutton'></a>Top button
 
-### <a name='topbuttonshortpress'></a>Top button short press
+### <a name='Topbuttonshortpress'></a>Top button short press
 When the alarm, sleep timer and snooze are off, single press will switch the music on. If the sleep timer is enabled, the sleep timer will also switch to on.
 
 If the sleep timer is on and the music is on, the music will be switched off.
@@ -438,9 +443,13 @@ When the alarm is on, snooze will switch on and the alarm will go to off.
 
 When snooze is on, the snooze will be switched off on single press.
 
-### <a name='topbuttondoublepress'></a>Top button double press
+### <a name='Topbuttondoublepress'></a>Top button double press
 
 When the alarm is on, you can switch to music playing. This is usefull when the local alarm kicks in but the music was working fine, this is certainly the case with `alarm_on_local_after_seconds`.
+
+### <a name='Topbuttontriplepress'></a>Top button triple press
+
+Switch the alarm on, mainly for testing purposes.
 
 ### <a name='Timepage'></a>Time page
 
@@ -547,4 +556,4 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 * The ESP-IDF framework seems to be causing frequent crashes (https://github.com/esphome/esphome/issues/10451)
 * The GPS module seems to be causing crashes, even if the ESP-IDF framework does not cause crashes
 
-## [Changelog](changelog.md)
+[Changelog](changelog.md)
