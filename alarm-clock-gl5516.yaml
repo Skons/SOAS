@@ -4,7 +4,9 @@ sensor:
     name: "Contrast Force Percent"
     unit_of_measurement: "%"
     icon: mdi:contrast
-    update_interval: 10s
+    update_interval: 2s
+    filters:
+      - delta: 1%
     lambda: |-
       if (id(contrast_force) < 0.0f) {
         return NAN;
@@ -16,15 +18,18 @@ sensor:
     name: "Illuminance"
     pin: $ldr_pin
     device_class: illuminance
-    update_interval: 10s
+    update_interval: 2s
     attenuation: auto
     unit_of_measurement: lx
-    accuracy_decimals: 0
+    accuracy_decimals: 1
     filters:
       - lambda: |-
-          float lux = (x / 10000.0) * 2000000.0 - 15;
+          float lux = ((x / 10000.0) * 2000000.0 - 15) + id(illuminance_offset_ui).state;
           if (lux < 0) lux = 0;
           return lux;
+      - delta: 5%
+      - clamp:
+          min_value: 0
     on_value:
       then:
         - lambda: |-
@@ -60,3 +65,21 @@ switch:
     turn_off_action:
       lambda: |-
         id(contrast_force) = -1.0;
+        
+number:
+  - platform: template
+    name: "Illuminance Offset"
+    id: illuminance_offset_ui
+    unit_of_measurement: "lx"
+    min_value: -100
+    max_value: 100
+    step: 5
+    mode: slider
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    icon: "mdi:brightness-5"
+    entity_category: config
+    on_value:
+      - lambda: 'id(light_sensor).update();'

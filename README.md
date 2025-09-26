@@ -20,8 +20,11 @@
 		* [RTTTL (Optional)](#RTTTLOptional)
 		* [GL5516 brightness sensor (Optional)](#GL5516brightnesssensorOptional)
 * [Usage](#Usage)
+* [Top button](#Topbutton)
+	* [Top button short press](#Topbuttonshortpress)
+	* [Top button double press](#Topbuttondoublepress)
+	* [Top button triple press](#Topbuttontriplepress)
 	* [Time page](#Timepage)
-		* [Flathead short press](#Flatheadshortpress)
 		* [Rotary single click](#Rotarysingleclick)
 		* [Rotary double click](#Rotarydoubleclick)
 		* [Rotary triple click](#Rotarytripleclick)
@@ -41,6 +44,7 @@
 	* [Restart page](#Restartpage)
 	* [Options not available on the alarm itself](#Optionsnotavailableonthealarmitself)
 * [Display mode](#Displaymode)
+* [Home Assistant SOAS version notification](#HomeAssistantSOASversionnotification)
 * [FAQ](#FAQ)
 	* [SH1107 SPI/I2C](#SH1107SPII2C)
 * [ToDo](#ToDo)
@@ -93,8 +97,10 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
   - [SH1107](https://nl.aliexpress.com/item/1005005313150711.html) (128x128) ~ €6,-
 * MAX98357a amplifier ~ €3,-
 * [3W speaker](https://nl.aliexpress.com/item/32593991938.html) ~ €3,-
-* [Rotary button](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
-* [Flat head button](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
+* [Rotary button, EC11 W Half 20mm](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
+* A button to be used on top of the clock, the following are supported:
+  - [Flat head button](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
+  - [Micro tactile switch, 6x6x5](https://nl.aliexpress.com/item/1005004971266223.html) < 0,10 per piece
 
 ## <a name='Optional'></a>Optional
 
@@ -134,10 +140,10 @@ Connect all dupont cables corresponding the schema's below:
 | GND       | GND     |
 | Vin       | 5v / 3v |
 
-| Flat head button | ESP32 |
-|------------------|-------|
-| Switch           | GPIO4 |
-| GND              | GND   |
+| Top button | ESP32 |
+|------------|-------|
+| Switch     | GPIO4 |
+| GND        | GND   |
 
 If you are going to add optional modules. Please review those modules for additional overlapping PINs.
 
@@ -234,7 +240,7 @@ Add this to the `substitutions:`
 
 #### <a name='ArduinoFramework'></a>Arduino Framework
 
-The Arduino framework provides a simpeler `media_player` component, so to have a fallback to a non internet stream you will need something like the Audio Server or RTTL buzzer. Another downside is that the `media_player` does not report errors the way the ESP-IDF framework reports errors. Therefor it's more difficult to detect if the stream is playing. With the `Alarm on local after seconds` number it is possible to force the local alarm after the defined seconds.
+The Arduino framework provides a simpeler `media_player` component, so to have a fallback to a non internet stream you will need something like the Audio Server or RTTL buzzer. Another downside is that the `media_player` does not report errors the way the ESP-IDF framework reports errors. Therefor it's more difficult to detect if the stream is playing. With the `alarm_on_local_after_seconds` number it is possible to force the local alarm after the defined seconds, due to bad error reporting it is advised to use this number.
 
 Edit the YAML and make sure the `packages` and `esp32` at least contains the code from below.
 
@@ -253,7 +259,9 @@ esp32:
 
 #### <a name='AudioServerOptional'></a>Audio Server (Optional)
 
-Created just for the Arduino framework to have a local file available when internet/wifi is down. This local file is for when internet is not available. For this server to work, SOAS must have been connected to WiFi. This method does not work directly after reboot when WiFi is not available.
+**Important: There are mixed results for this local alarm to function when wifi has not been connected. Sometimes alarm will sound if wifi has not been connected, but it's safe to assume that it does not work. To be safe, use the RTTTL nowifi module**
+
+Created just for the Arduino framework to have a local file available when internet/wifi is down. This local file is for when internet is not available.
 
 Add this to the `substitutions:`
 
@@ -280,7 +288,6 @@ Add this to the `substitutions:`
   #NEO-6M
   gps_tx_pin: GPIO43
   gps_rx_pin: GPIO44
-  timezone: Europe/Amsterdam
 ```
 
 Add `alarm-clock-gps.yaml` to the `files:` property of `packages`.
@@ -307,9 +314,11 @@ Add `alarm-clock-ds1307.yaml` to the `files:` property of `packages`.
 
 #### <a name='RTTTLOptional'></a>RTTTL (Optional)
 
-**Important: Only use this module in combination with the Arduino framework module**
+**Important: Only use the `alarm-clock-rtttl.yaml` module only in combination with the Arduino framework module. It overwrites the `alarm_on_local` functionality**
 
-With an added buzzer, you can use this to play nostalgia rtttl sound (like on older phones or pc system speaker). The main goal is to use it as an fallback when internet is down, or the music stream malfunctions.
+With an added buzzer, you can use this to play nostalgia RTTTL sound (like on older phones or pc system speaker). The main goal is to use it as an fallback when internet is down, or the music stream malfunctions. The esp-idf framework has got local file function, this module does not add any functionality in that case. Instead it overwrites the `alarm_on_local` functionality which removes the local file support.
+
+The choice is between `alarm-clock-rtttl.yaml` or `alarm-clock-rtttl-nowifi.yaml`. Use the first if you do not have local file support (see Audio Server). Use the second if you use local file support. Keep in mind that the RTTTL buzzer will only come in to play when the clock is coming back from power outage, but has not connected with wifi. If the wifi connection has taken place, the Audio Server will function and then the RTTTL buzzer is not needed.
 
 | BUZZER | ESP32  |
 |--------|--------|
@@ -344,7 +353,7 @@ Add this to `select:` (after your stream urls)
 
 For additional tunes, see `alarm-clock-rtttl-additional-tunes.txt`. You can add them instead of the above. Do not add too much, this can crash SOAS.
 
-Add `alarm-clock-rtttl.yaml` to the `files:` property of `packages`.
+Add `alarm-clock-rtttl.yaml` or `alarm-clock-rtttl-nowifi.yaml` to the `files:` property of `packages`.
 
 #### <a name='GL5516brightnesssensorOptional'></a>GL5516 brightness sensor (Optional)
 
@@ -407,10 +416,6 @@ Add `alarm-clock-gl5516.yaml` to the `files:` property of `packages`.
 
 * Automatic enable of buzzer after defined period - This enables the buzzer after a period the alarm has been on. Failure detection with the Arduino framework is difficult due to the lack of good error reporting
 
-###### <a name='Flatheadshortpress'></a>Flathead long press
-
-When the buzzer is sounding, you can disable the buzzer with a long press. This can be handy when the music is on, and you want to listen without the buzzer interrupting.
-
 ###### Test a tune
 
 To test a tune, you can use the HA service "tune" to play directly on the buzzer of the device, like this example:
@@ -425,9 +430,9 @@ data:
 
 The rotary button is the button for accessing and editing configuration. When on a page, and there is no blinking of a configuration, you will automatically be redirected to the time page after 5 seconds of inactivity. The edit mode, blinking of a configuration, needs to be exited to return back to the time page. Entering and exiting the edit mode is done by single clicking the rotary button.
 
-### <a name='Timepage'></a>Time page
+## <a name='Topbutton'></a>Top button
 
-#### <a name='Flatheadshortpress'></a>Flathead short press
+### <a name='Topbuttonshortpress'></a>Top button short press
 When the alarm, sleep timer and snooze are off, single press will switch the music on. If the sleep timer is enabled, the sleep timer will also switch to on.
 
 If the sleep timer is on and the music is on, the music will be switched off.
@@ -438,6 +443,16 @@ If the sleep timer is on and the music is on, the music will be switched off.
 When the alarm is on, snooze will switch on and the alarm will go to off.
 
 When snooze is on, the snooze will be switched off on single press.
+
+### <a name='Topbuttondoublepress'></a>Top button double press
+
+When the alarm is on, you can switch to music playing. This is usefull when the local alarm kicks in but the music was working fine, this is certainly the case with `alarm_on_local_after_seconds`.
+
+### <a name='Topbuttontriplepress'></a>Top button triple press
+
+Switch the alarm on, mainly for testing purposes.
+
+### <a name='Timepage'></a>Time page
 
 #### <a name='Rotarysingleclick'></a>Rotary single click
 Single click of the rotary button toggles the alarm.
@@ -528,6 +543,43 @@ The `Minimum night only` will have a smaller font for less light. The wifi icon 
 
 `Minimum` is the same as `Minimum night only`, except that it is the mode also during daytime.
 
+## <a name='HomeAssistantSOASversionnotification'></a>Home Assistant SOAS version notification
+
+If you want to be notified if there is an update for SOAS, you can add this to your Home Assistant configuration. Every SOAS clock provides its own version as entity to Home Assistant.
+
+Add this in configuration. Make sure `ensor.alarm_clock_soas_soas_version` is correct, and replace `notify.mobile_app_iphone`.
+
+``` yaml
+rest_command:
+  soas:
+    url: https://raw.githubusercontent.com/Skons/SOAS/refs/heads/main/changelog.md
+    method: GET
+
+automation:
+  - alias: "SOAS Version Check"
+    id: soas_version_check
+    initial_state: "on"
+    mode: restart
+    triggers:
+      - trigger: time
+        at: "12:34:56"
+    action:
+      - action: rest_command.soas
+        response_variable: soas_response
+      - if: "{{ soas_response['status'] == 200 }}"
+        then:
+          - alias: "Parse data"
+            variables:
+              version: "{{ (soas_response.content.split('##')[1]).split('\n')[0] }}"
+              currentVersion: "{{ states('sensor.alarm_clock_soas_soas_version') }}"
+          - if: "{{ version and version != currentVersion }}"
+            then:
+            - action: notify.mobile_app_iphone
+              data:
+                title: "Soas update"
+                message: "SOAS has got an update with version {{ version }}"
+```
+
 ## <a name='FAQ'></a>FAQ
 
 ### <a name='SH1107SPII2C'></a>SH1107 SPI/I2C
@@ -542,4 +594,4 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 * The ESP-IDF framework seems to be causing frequent crashes (https://github.com/esphome/esphome/issues/10451)
 * The GPS module seems to be causing crashes, even if the ESP-IDF framework does not cause crashes
 
-## [Changelog](changelog.md)
+## <a name='Changelog'></a>[Changelog](changelog.md)
