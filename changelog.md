@@ -9,6 +9,8 @@
 - If `contrast_force` is being set, the contrast page will not be displayed anymore
 - Configuration errors removed from the examples
 - Click sound prevention in Arduino framework
+- Flathead button specification, thanks @pepegarnic
+- Rotary button specification issue [#35](https://github.com/Skons/SOAS/issues/35)
 - Documentation updates
 - Resolved snooze issue [#33](https://github.com/Skons/SOAS/issues/33)
 - Resolved sleep timer issue
