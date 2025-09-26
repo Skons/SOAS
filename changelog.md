@@ -1,6 +1,6 @@
 # Changelog
 
-## 2025.9.25.1
+## 2025.9.26.1
 - **BREAKING** Top button long press switched to double press. Works better with the tactile button
 - Added triple top button press to be able to test `alarm_on`
 - Added SOAS version as text sensor
@@ -18,6 +18,8 @@
 - Switches for display off during snooze and music, thanks @popy24
 - Added an internal uptime sensor
 - The RTTTL module is splitted into `alarm-clock-rtttl.yaml` and `alarm-clock-rtttl-nowifi.yaml`
+- Added a version entity
+- Added documentation for Home Assistant with a notify automation if there is a SOAS update
 
 ## 2025.9.18.2
 - Fix for issue [#30](https://github.com/Skons/SOAS/issues/30)

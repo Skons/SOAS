@@ -44,6 +44,7 @@
 	* [Restart page](#Restartpage)
 	* [Options not available on the alarm itself](#Optionsnotavailableonthealarmitself)
 * [Display mode](#Displaymode)
+* [Home Assistant SOAS version notification](#HomeAssistantSOASversionnotification)
 * [FAQ](#FAQ)
 	* [SH1107 SPI/I2C](#SH1107SPII2C)
 * [ToDo](#ToDo)
@@ -542,6 +543,43 @@ The `Minimum night only` will have a smaller font for less light. The wifi icon 
 
 `Minimum` is the same as `Minimum night only`, except that it is the mode also during daytime.
 
+## <a name='HomeAssistantSOASversionnotification'></a>Home Assistant SOAS version notification
+
+If you want to be notified if there is an update for SOAS, you can add this to your Home Assistant configuration. Every SOAS clock provides its own version as entity to Home Assistant.
+
+Add this in configuration. Make sure `ensor.alarm_clock_soas_soas_version` is correct, and replace `notify.mobile_app_iphone`.
+
+``` yaml
+rest_command:
+  soas:
+    url: https://raw.githubusercontent.com/Skons/SOAS/refs/heads/main/changelog.md
+    method: GET
+
+automation:
+  - alias: "SOAS Version Check"
+    id: soas_version_check
+    initial_state: "on"
+    mode: restart
+    triggers:
+      - trigger: time
+        at: "12:34:56"
+    action:
+      - action: rest_command.soas
+        response_variable: soas_response
+      - if: "{{ soas_response['status'] == 200 }}"
+        then:
+          - alias: "Parse data"
+            variables:
+              version: "{{ (soas_response.content.split('##')[1]).split('\n')[0] }}"
+              currentVersion: "{{ states('sensor.alarm_clock_soas_soas_version') }}"
+          - if: "{{ version and version != currentVersion }}"
+            then:
+            - action: notify.mobile_app_iphone
+              data:
+                title: "Soas update"
+                message: "SOAS has got an update with version {{ version }}"
+```
+
 ## <a name='FAQ'></a>FAQ
 
 ### <a name='SH1107SPII2C'></a>SH1107 SPI/I2C
@@ -556,4 +594,4 @@ Some SH1107 display modules support both I2C and SPI interface modes (one mode a
 * The ESP-IDF framework seems to be causing frequent crashes (https://github.com/esphome/esphome/issues/10451)
 * The GPS module seems to be causing crashes, even if the ESP-IDF framework does not cause crashes
 
-[Changelog](changelog.md)
+## <a name='Changelog'></a>[Changelog](changelog.md)
