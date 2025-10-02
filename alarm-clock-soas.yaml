@@ -72,6 +72,12 @@ font:
             "\U000F0763", # SquareOutline
             "\U000F057E", # VolumeHigh
             "\U000F0387", # MusicNote
+            "\U000F0155", #ClockStart
+            "\U000F0151", #ClockEnd
+            "\U000F154B", #SortClockDescending
+            "\U000F0996", #ProgressClock
+            "\U000F073A", #Cancel
+            "\U000F0FDF", #SlashForward
           ]
   - id: robotomedium51
     file: fonts/Roboto-Medium.ttf
@@ -80,6 +86,10 @@ font:
   - id: robotomedium30
     file: fonts/Roboto-Medium.ttf
     size: 30
+    <<: *extras
+  - id: robotomedium25
+    file: fonts/Roboto-Medium.ttf
+    size: 25
     <<: *extras
   - id: robotomedium20
     file: fonts/Roboto-Medium.ttf
@@ -210,11 +220,11 @@ sun:
 
 wifi:
   on_connect:
-    lambda:
+    lambda: |-
       id(wifi_initially_connected) = true;
       id(wifi_connected) = true;
   on_disconnect:
-    lambda:
+    lambda: |-
       id(wifi_connected) = false;
 
 number:
@@ -381,8 +391,44 @@ number:
     initial_value: 0
     min_value: 0
     max_value: 300
-    step: 30
+    step: 1
     mode: slider
+  - name: "Alarm volume increase start"
+    platform: template
+    id: alarm_volume_increase_start
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: 0
+    max_value: 100
+    step: 1
+    mode: slider
+    on_value:
+      - lambda: |-
+          if (x > id(alarm_volume_increase_end).state) {
+            auto call = id(alarm_volume_increase_end).make_call();
+            call.set_value(x);
+            call.perform();
+          }
+  - name: "Alarm volume increase end"
+    platform: template
+    id: alarm_volume_increase_end
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: 0
+    max_value: 100
+    step: 1
+    mode: slider
+    on_value:
+      - lambda: |-
+          if (x < id(alarm_volume_increase_start).state) {
+            auto call = id(alarm_volume_increase_start).make_call();
+            call.set_value(x);
+            call.perform();
+          }
   - name: "Alarm on local after seconds"
     platform: template
     id: alarm_on_local_after_seconds
@@ -399,8 +445,8 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.9.26.1"};
-    update_interval: 2147483647s
+    lambda: return {"2025.10.2.1"};
+    update_interval: 4294966296s
 
   # - name: "Debug logger"
   #   platform: template
@@ -529,7 +575,7 @@ sensor:
                     - if:
                         condition:
                           lambda: |-
-                            if (id(rotate_switch_single) == 0 && id(rotate_switch_double) == 0 && id(current_page_id) < 9) {
+                            if (id(rotate_switch_single) == 0 && id(rotate_switch_double) == 0 && id(current_page_id) < 10) {
                               ESP_LOGD("rotary_encoder", "anticlockwise");
                               return true;
                             }
@@ -541,7 +587,7 @@ sensor:
                                   id: alarmdisplay
                                   page_id: page1
                               then:
-                                - display.page.show: page8
+                                - display.page.show: page9
                               else:
                                 - display.page.show_previous: alarmdisplay
                           - script.execute:
@@ -578,7 +624,7 @@ sensor:
                     - if:
                         condition:
                           lambda: |-
-                            if (id(rotate_switch_single) == 0 && id(rotate_switch_double) == 0 && id(current_page_id) < 9) {
+                            if (id(rotate_switch_single) == 0 && id(rotate_switch_double) == 0 && id(current_page_id) < 10) {
                               ESP_LOGD("rotary_encoder", "clockwise");
                               return true;
                             }
@@ -588,7 +634,7 @@ sensor:
                               condition:
                                 display.is_displaying_page:
                                   id: alarmdisplay
-                                  page_id: page8
+                                  page_id: page9
                               then:
                                 - display.page.show: page1
                               else:
@@ -800,24 +846,24 @@ binary_sensor:
                 - if:
                     condition:
                       or:
-                        - display.is_displaying_page: page3
                         - display.is_displaying_page: page4
                         - display.is_displaying_page: page5
                         - display.is_displaying_page: page6
+                        - display.is_displaying_page: page7
                     then:
                       - lambda: |-
                           auto haEnabled = id(ha_1_enabled);
                           auto haAlarmed = id(ha_1_alarmed);
                           int current_page_value = id(current_page_id);
-                          if (current_page_value == 4) {
+                          if (current_page_value == 5) {
                             haEnabled = id(ha_2_enabled);
                             haAlarmed = id(ha_2_alarmed);
                           }
-                          else if (current_page_value == 5) {
+                          else if (current_page_value == 6) {
                             haEnabled = id(ha_3_enabled);
                             haAlarmed = id(ha_3_alarmed);
                           }
-                          else if (current_page_value == 6) {
+                          else if (current_page_value == 7) {
                             haEnabled = id(ha_4_enabled);
                             haAlarmed = id(ha_4_alarmed);
                           }
@@ -838,7 +884,7 @@ binary_sensor:
                           id(reset_page_script).execute();
                 - if:
                     condition:
-                      display.is_displaying_page: page7
+                      display.is_displaying_page: page8
                     then:
                       - switch.toggle: sleep_timer_enabled
       - timing: #single click
@@ -866,10 +912,18 @@ binary_sensor:
                         id(alarm_enabled).turn_on();
                       }
                     }
-                    else if (current_page_value == 2) { //alarm clock page
+                    else if (current_page_value > 1 && current_page_value < 9) {
+                      int maxValue = 1; //ha minute page & sleep timer
+                      if (current_page_value == 2) { //alarm clock page
+                        maxValue = 2;
+                      }
+                      if (current_page_value == 3) { //alarm volume page
+                        maxValue = 4;
+                      }
+
                       int value = id(rotate_switch_single);
                       value += 1;
-                      if (value > 2) {
+                      if (value > maxValue) {
                         value = 0;
                       }
                       id(rotate_switch_single) = value;
@@ -880,35 +934,7 @@ binary_sensor:
                         id(reset_page_script).stop();
                       }
                     }
-                    else if (current_page_value == 3 || current_page_value == 4 || current_page_value == 5 || current_page_value == 6) { //ha minute page
-                      int value = id(rotate_switch_single);
-                      value += 1;
-                      if (value > 1) {
-                        value = 0;
-                      }
-                      id(rotate_switch_single) = value;
-                      if (value == 0) { //not in edit mode, start reset
-                        id(reset_page_script).execute();
-                      }
-                      else {
-                        id(reset_page_script).stop();
-                      }
-                    }
-                    else if (current_page_value == 7) { //sleep timer
-                      int value = id(rotate_switch_single);
-                      value += 1;
-                      if (value > 1) {
-                        value = 0;
-                      }
-                      id(rotate_switch_single) = value;
-                      if (value == 0) { //not in edit mode, start reset
-                        id(reset_page_script).execute();
-                      }
-                      else {
-                        id(reset_page_script).stop();
-                      }
-                    }
-                    else if (current_page_value == 8) { //radio selector
+                    else if (current_page_value == 9) { //radio selector
                       int value = id(rotate_switch_single);
                       value += 1;
                       if (value > 1) {
@@ -1069,7 +1095,7 @@ switch:
     on_turn_off:
       - script.execute:
           id: display_off_script
-      - lambda:
+      - lambda: |-
           auto call = id(snooze_timestamp).make_call();
           call.set_datetime(id(ntp).now().timestamp);
           call.perform();
@@ -1164,7 +1190,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
     on_turn_on:
-      - lambda:
+      - lambda: |-
           auto call = id(alarm_on_timestamp).make_call();
           call.set_datetime(id(ntp).now().timestamp);
           call.perform();
@@ -1173,12 +1199,18 @@ switch:
           ESP_LOGD("alarm_on", "saving settings");
           global_preferences->sync();
       - switch.turn_on: display_on
+      - script.execute: alarm_volume_manager
       - if:
           condition:
             switch.is_on: music_on
           then:
             switch.turn_off: alarm_on
           else:
+            - if:
+                condition:
+                  lambda: return (id(alarm_volume_increase_start).state > 0 && id(alarm_volume_increase_duration).state > 0 && id(alarm_volume_increase).state > 0);
+                then: #set the volume if the alarm_volume_increase_start has been set and volume increase will take place
+                  - media_player.volume_set: !lambda "return (id(alarm_volume_increase_start).state/100);"
             - wait_until:
                 lambda: 'return (id(time_sync_done) == true);'
             - if:
@@ -1187,12 +1219,11 @@ switch:
                 then:
                   switch.turn_on: alarm_on_local
                 else:
-                  - script.execute:
-                      id: play_url
+                  - script.execute: play_url
     on_turn_off:
-      - script.execute:
-          id: display_off_script
+      - script.execute: display_off_script
       - switch.turn_off: alarm_on_local
+      - script.stop: alarm_volume_manager
       - if:
           condition:
             switch.is_off: music_on
@@ -1291,7 +1322,7 @@ switch:
             condition:
               lambda: 'return (id(time_sync_done) == true);'
             then:
-              - lambda:
+              - lambda: |-
                   auto call = id(sleep_timer_timestamp).make_call();
                   call.set_datetime(id(ntp).now().timestamp);
                   call.perform();
@@ -1337,10 +1368,7 @@ display:
             return;
           }
           auto time = id(ntp).now();
-          time_t currentTime = time.timestamp;
-          char seconds[15];
-          strftime(seconds, sizeof(seconds), "%S", localtime(&currentTime));
-          int shouldBlink = atoi(seconds) % 2;
+          int shouldBlink = time.second % 2;
           bool is_night_mode = id(night_mode).state;
           bool showClock = id(clock_on_display).state;
           std::string language = "${language}";
@@ -1517,11 +1545,7 @@ display:
               it.printf(it.get_width(), (it.get_height()/2), timeFont20, TextAlign::CENTER_RIGHT, "%s%i:%s%i", preZeroHour.c_str(), (int)id(alarm_hour).state, preZeroMinute.c_str(), (int)id(alarm_minute).state);
             }
             else if (id(alarm_enabled).state && id(snooze_on).state) {
-              esphome::ESPTime eSnoozeTimestamp = id(snooze_timestamp).state_as_esptime();
-              struct tm snoozeTime = eSnoozeTimestamp.to_c_tm();
-              char strForDisplay[6];
-              strftime(strForDisplay, sizeof(strForDisplay), "%H:%M", &snoozeTime);
-              it.printf(it.get_width(), (it.get_height()/2), timeFont20, TextAlign::CENTER_RIGHT, "%s", strForDisplay);
+              it.strftime(it.get_width(), (it.get_height()/2), timeFont20, TextAlign::CENTER_RIGHT, "%H:%M", id(snooze_timestamp).state_as_esptime());
             }
           }
           //end statusbar
@@ -1551,10 +1575,7 @@ display:
       - id: page2 #Alarm clock setting page
         lambda: |-
           auto time = id(ntp).now();
-          time_t currentTime = time.timestamp;
-          char seconds[15];
-          strftime(seconds, sizeof(seconds), "%S", localtime(&currentTime));
-          int shouldBlink = atoi(seconds) % 2;
+          int shouldBlink = time.second % 2;
 
           int calculated_width;
           int calculated_height;
@@ -1597,14 +1618,99 @@ display:
           }
 
           id(current_page_id) = 2;
-      - id: page3 #HA 1 page
+      - id: page3 #alarm volume page
+        lambda: |-
+          auto time = id(ntp).now();
+          int shouldBlink = time.second % 2;
+          int rotate_switch_single_value = id(rotate_switch_single);
+          std::string language = "${language}";
+
+          std::string topText = "Alarm Volume";
+          if (shouldBlink) {
+            if (rotate_switch_single_value == 1) {
+              topText = "Start";
+              if (language == "NL") {
+                topText = "Begin";
+              }
+            }
+            else if (rotate_switch_single_value == 2) {
+              topText = "End";
+              if (language == "NL") {
+                topText = "Eind";
+              }
+            }
+            else if (rotate_switch_single_value == 3) {
+              topText = "Increase";
+              if (language == "NL") {
+                topText = "Stijging";
+              }
+            }
+            else if (rotate_switch_single_value == 4) {
+              topText = "Duration";
+              if (language == "NL") {
+                topText = "Duur";
+              }
+            }
+          }
+          it.printf(it.get_width()/2, 0, id(robotomedium20), TextAlign::TOP_CENTER, topText.c_str());
+
+          int alarmVolumeIncreaseStart = id(alarm_volume_increase_start).state;
+          int alarmVolumeIncreaseEnd = id(alarm_volume_increase_end).state;
+          int alarmVolumeIncrease = id(alarm_volume_increase).state;
+          int alarmVolumeIncreaseDuration = id(alarm_volume_increase_duration).state;
+          if (it.get_height() == 128 || (it.get_height() == 64 && rotate_switch_single_value < 3)) {
+            if ((alarmVolumeIncreaseStart == 0 || (alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0)) && shouldBlink) {
+              it.printf(0, 50, id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F073A");
+            }
+            else {
+              it.printf(0, 50, id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F0155");
+            }
+            if ((shouldBlink && rotate_switch_single_value == 1) || rotate_switch_single_value != 1) {
+              it.printf(20, 64, id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", alarmVolumeIncreaseStart);
+            }
+
+            if ((alarmVolumeIncreaseEnd == 0 || (alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0)) && shouldBlink) {
+              it.printf(64, 50, id(robotomedium20), TextAlign::CENTER_LEFT , "\U000F073A");
+            }
+            else {
+              it.printf(64, 50, id(robotomedium20), TextAlign::CENTER_LEFT , "\U000F0151");
+            }
+            if ((shouldBlink && rotate_switch_single_value == 2) || rotate_switch_single_value != 2) {
+              it.printf(84, 64, id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", alarmVolumeIncreaseEnd);
+            }
+          }
+
+          if (it.get_height() == 128 || (it.get_height() == 64 && rotate_switch_single_value > 2)) {
+            if ((alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0) && shouldBlink) {
+              it.printf(0, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F073A");
+            }
+            else {
+              it.printf(0, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F154B");
+            }
+            if ((shouldBlink && rotate_switch_single_value == 3) || rotate_switch_single_value != 3) {
+              it.printf(20, it.get_height(), id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", (int)id(alarm_volume_increase).state);
+            }
+
+            if ((alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0) && shouldBlink) {
+              it.printf(64, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT , "\U000F073A");
+            }
+            else {
+              it.printf(64, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT , "\U000F0996");
+            }
+            if ((shouldBlink && rotate_switch_single_value == 4) || rotate_switch_single_value != 4) {
+              it.printf(84, it.get_height(), id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", (int)id(alarm_volume_increase_duration).state);
+            }
+          }
+
+          //it.line(64, 128, 64, 0);
+          //it.line(0, 64, 128, 64);
+
+          id(current_page_id) = 3;
+      - id: page4 #HA 1 page
         lambda: |-
           //https://gist.github.com/alvesvaren/767d9585f0ecbef18ef1c7c0492c4332
           auto time = id(ntp).now();
-          time_t currentTime = time.timestamp;
-          char seconds[15];
-          strftime(seconds, sizeof(seconds), "%S", localtime(&currentTime));
-          int shouldBlink = atoi(seconds) % 2;
+          int shouldBlink = time.second % 2;
           int ha_value = id(ha_1_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1663,14 +1769,11 @@ display:
             it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0023");
           }
 
-          id(current_page_id) = 3;
-      - id: page4 #HA 2 page
+          id(current_page_id) = 4;
+      - id: page5 #HA 2 page
         lambda: |-
           auto time = id(ntp).now();
-          time_t currentTime = time.timestamp;
-          char seconds[15];
-          strftime(seconds, sizeof(seconds), "%S", localtime(&currentTime));
-          int shouldBlink = atoi(seconds) % 2;
+          int shouldBlink = time.second % 2;
           int ha_value = id(ha_2_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1729,14 +1832,11 @@ display:
             it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0023");
           }
 
-          id(current_page_id) = 4;
-      - id: page5 #HA 3 page
+          id(current_page_id) = 5;
+      - id: page6 #HA 3 page
         lambda: |-
           auto time = id(ntp).now();
-          time_t currentTime = time.timestamp;
-          char seconds[15];
-          strftime(seconds, sizeof(seconds), "%S", localtime(&currentTime));
-          int shouldBlink = atoi(seconds) % 2;
+          int shouldBlink = time.second % 2;
           int ha_value = id(ha_3_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1795,14 +1895,11 @@ display:
             it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0023");
           }
 
-          id(current_page_id) = 5;
-      - id: page6 #HA 4 page
+          id(current_page_id) = 6;
+      - id: page7 #HA 4 page
         lambda: |-
           auto time = id(ntp).now();
-          time_t currentTime = time.timestamp;
-          char seconds[15];
-          strftime(seconds, sizeof(seconds), "%S", localtime(&currentTime));
-          int shouldBlink = atoi(seconds) % 2;
+          int shouldBlink = time.second % 2;
           int ha_value = id(ha_4_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1861,14 +1958,11 @@ display:
             it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0023");
           }
 
-          id(current_page_id) = 6;
-      - id: page7 #Sleep timer
+          id(current_page_id) = 7;
+      - id: page8 #Sleep timer
         lambda: |-
           auto time = id(ntp).now();
-          time_t currentTime = time.timestamp;
-          char seconds[15];
-          strftime(seconds, sizeof(seconds), "%S", localtime(&currentTime));
-          int shouldBlink = atoi(seconds) % 2;
+          int shouldBlink = time.second % 2;
           int sleep_timer_duration_value = id(sleep_timer_duration).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1885,14 +1979,11 @@ display:
             it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0131");
           }
 
-          id(current_page_id) = 7;
-      - id: page8 #Radio selector
+          id(current_page_id) = 8;
+      - id: page9 #Radio selector
         lambda: |-
           auto time = id(ntp).now();
-          time_t currentTime = time.timestamp;
-          char seconds[15];
-          strftime(seconds, sizeof(seconds), "%S", localtime(&currentTime));
-          int shouldBlink = atoi(seconds) % 2;
+          int shouldBlink = time.second % 2;
 
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1915,7 +2006,7 @@ display:
             it.printf(it.get_width()/2, it.get_height(), id(robotomedium20), TextAlign::BOTTOM_CENTER, radioValue.c_str());
           }
 
-          id(current_page_id) = 8;
+          id(current_page_id) = 9;
       - id: page10 #Contrast page
         lambda: |-
           bool is_night_mode = id(night_mode).state;
@@ -1985,7 +2076,7 @@ script:
           if (current_page_id_value == 2) { //alarm clock page
             int hour_value = id(alarm_hour).state;
             int minute_value = id(alarm_minute).state;
-            if (rotate_switch_single_value == 1) { //update minutes
+            if (rotate_switch_single_value == 1) { //update hours
               if (clockwise == true) {
                 hour_value += 1;
                 if (hour_value > 23) {
@@ -2022,18 +2113,97 @@ script:
               ESP_LOGD("rotary_encoder_script", "%s setting alarm_minute to %i", rotation.c_str(), alarm_minute);
             }
           }
-          else if (current_page_id_value == 3 || current_page_id_value == 4 || current_page_id_value == 5 || current_page_id_value == 6) { //ha pages
+          else if (current_page_id_value == 3) { //update alarm volume
+            ESP_LOGD("rotary_encoder_script", "rotate_switch_single_value %i", rotate_switch_single_value);
+            if (rotate_switch_single_value == 1) { //update alarm_volume_increase_start
+              int alarmVolumeIncreaseStart = id(alarm_volume_increase_start).state;
+              if (clockwise == true) {
+                alarmVolumeIncreaseStart += 1;
+                if (alarmVolumeIncreaseStart > 100) {
+                  alarmVolumeIncreaseStart = 0;
+                }
+              }
+              else {
+                alarmVolumeIncreaseStart -= 1;
+                if (alarmVolumeIncreaseStart < 0) {
+                  alarmVolumeIncreaseStart = 100;
+                }
+              }
+              auto call = id(alarm_volume_increase_start).make_call();
+              call.set_value(alarmVolumeIncreaseStart);
+              call.perform();
+              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_start to %i", rotation.c_str(), alarmVolumeIncreaseStart);
+            }
+            else if (rotate_switch_single_value == 2) { //update alarm_volume_increase_end
+              int alarmVolumeIncreaseEnd = id(alarm_volume_increase_end).state;
+              if (clockwise == true) {
+                alarmVolumeIncreaseEnd += 1;
+                if (alarmVolumeIncreaseEnd > 100) {
+                  alarmVolumeIncreaseEnd = 0;
+                }
+              }
+              else {
+                alarmVolumeIncreaseEnd -= 1;
+                if (alarmVolumeIncreaseEnd < 0) {
+                  alarmVolumeIncreaseEnd = 100;
+                }
+              }
+              auto call = id(alarm_volume_increase_end).make_call();
+              call.set_value(alarmVolumeIncreaseEnd);
+              call.perform();
+              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_end to %i", rotation.c_str(), alarmVolumeIncreaseEnd);
+            }
+            else if (rotate_switch_single_value == 3) { //update alarm_volume_increase
+              int alarmVolumeIncrease = id(alarm_volume_increase).state;
+              if (clockwise == true) {
+                alarmVolumeIncrease += 1;
+                if (alarmVolumeIncrease > 100) {
+                  alarmVolumeIncrease = 0;
+                }
+              }
+              else {
+                alarmVolumeIncrease -= 1;
+                if (alarmVolumeIncrease < 0) {
+                  alarmVolumeIncrease = 100;
+                }
+              }
+              auto call = id(alarm_volume_increase).make_call();
+              call.set_value(alarmVolumeIncrease);
+              call.perform();
+              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase to %i", rotation.c_str(), alarmVolumeIncrease);
+            }
+            else if (rotate_switch_single_value == 4) { //update alarm_volume_increase_duration
+              int alarmVolumeIncreaseDuration = id(alarm_volume_increase_duration).state;
+              if (clockwise == true) {
+                alarmVolumeIncreaseDuration += 1;
+                if (alarmVolumeIncreaseDuration > 300) {
+                  alarmVolumeIncreaseDuration = 0;
+                }
+              }
+              else {
+                alarmVolumeIncreaseDuration -= 1;
+                if (alarmVolumeIncreaseDuration < 0) {
+                  alarmVolumeIncreaseDuration = 300;
+                }
+              }
+              auto call = id(alarm_volume_increase_duration).make_call();
+              call.set_value(alarmVolumeIncreaseDuration);
+              call.perform();
+              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_duration to %i", rotation.c_str(), alarmVolumeIncreaseDuration);
+            }
+          }
+          else if (current_page_id_value > 3 && current_page_id_value < 8) { //ha pages
             int ha_value = 0;
-            if (current_page_id_value == 3) {
+            if (current_page_id_value == 4) {
               ha_value = id(ha_1_pre_minute).state;
             }
-            else if (current_page_id_value == 4) {
+            else if (current_page_id_value == 5) {
               ha_value = id(ha_2_pre_minute).state;
             }
-            else if (current_page_id_value == 5) {
+            else if (current_page_id_value == 6) {
               ha_value = id(ha_3_pre_minute).state;
             }
-            else if (current_page_id_value == 6) {
+            else if (current_page_id_value == 7) {
               ha_value = id(ha_4_pre_minute).state;
             }
             if (rotate_switch_single_value == 1) { //update ha minutes
@@ -2050,30 +2220,30 @@ script:
                 }
               }
 
-              if (current_page_id_value == 3) {
+              if (current_page_id_value == 4) {
                 auto call = id(ha_1_pre_minute).make_call();
                 call.set_value(ha_value);
                 call.perform();
               }
-              else if (current_page_id_value == 4) {
+              else if (current_page_id_value == 5) {
                 auto call = id(ha_2_pre_minute).make_call();
                 call.set_value(ha_value);
                 call.perform();
               }
-              else if (current_page_id_value == 5) {
+              else if (current_page_id_value == 6) {
                 auto call = id(ha_3_pre_minute).make_call();
                 call.set_value(ha_value);
                 call.perform();
               }
-              else if (current_page_id_value == 6) {
+              else if (current_page_id_value == 7) {
                 auto call = id(ha_4_pre_minute).make_call();
                 call.set_value(ha_value);
                 call.perform();
               }
-              ESP_LOGD("rotary_encoder_script", "%s setting ha_%i_pre_minute to %i", rotation.c_str(), current_page_id_value-2, ha_value);
+              ESP_LOGD("rotary_encoder_script", "%s setting ha_%i_pre_minute to %i", rotation.c_str(), current_page_id_value-3, ha_value);
             }
           }
-          else if (current_page_id_value == 7) { //sleep timer pages
+          else if (current_page_id_value == 8) { //sleep timer pages
             int sleep_timer_duration_value = id(sleep_timer_duration).state;
             if (rotate_switch_single_value == 1) { //update sleep timer minutes
               if (clockwise) {
@@ -2096,7 +2266,7 @@ script:
               ESP_LOGD("rotary_encoder_script", "%s setting sleep_timer_duration to %i", rotation.c_str(), sleep_timer_duration_value);
             }
           }
-          else if (current_page_id_value == 8) { //Radio selector page
+          else if (current_page_id_value == 9) { //Radio selector page
             auto size = id(alarm_stream_name).size();
             ESP_LOGD("rotary_encoder_script", "alarm_stream_name select has %d options", size);
 
@@ -2282,18 +2452,13 @@ script:
       - lambda: |-
           ESP_LOGD("set_schedule_trigger_time_script", "processing index %i", index);
           char str[20];
-          time_t currentTimeForSchedule = id(ntp).now().timestamp;
+          esphome::ESPTime eCurrentTimeForSchedule = id(ntp).now();
+          time_t currentTimeForSchedule = eCurrentTimeForSchedule.timestamp;
 
           //get the midnight of today
-          char currentHour[5];
-          char currentMinute[5];
-          char currentSecond[5];
-          strftime(currentHour, sizeof(currentHour), "%H", localtime(&currentTimeForSchedule));
-          strftime(currentMinute, sizeof(currentMinute), "%M", localtime(&currentTimeForSchedule));
-          strftime(currentSecond, sizeof(currentSecond), "%S", localtime(&currentTimeForSchedule));
-          int iCurrentHour = atoi(currentHour);
-          int iCurrentMinute = atoi(currentMinute);
-          int iCurrentSecond = atoi(currentSecond);
+          int iCurrentHour =eCurrentTimeForSchedule.hour;
+          int iCurrentMinute = eCurrentTimeForSchedule.minute;
+          int iCurrentSecond = eCurrentTimeForSchedule.second;
           currentTimeForSchedule -= iCurrentSecond; //second 0 of the current minute
 
           strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&currentTimeForSchedule));
@@ -2348,16 +2513,6 @@ script:
           strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&newSchedule));
           ESP_LOGD("set_schedule_trigger_time_script", "newSchedule time %s", str);
 
-          //set the schedule time
-          char scheduleHour[5];
-          char scheduleMinute[5];
-          strftime(scheduleHour, sizeof(scheduleHour), "%H", localtime(&newSchedule));
-          strftime(scheduleMinute, sizeof(scheduleMinute), "%M", localtime(&newSchedule));
-
-          //string for display time
-          char strForDisplay[6];
-          strftime(strForDisplay, sizeof(strForDisplay), "%H:%M", localtime(&newSchedule));
-
           //current time as timestamp
           int currentTimestamp = currentTimeForSchedule;
           int iNewScheduleTimeStamp = newSchedule;
@@ -2365,22 +2520,22 @@ script:
           //assign the new schedule
           if (index == 1) {
             auto ha1Time = id(ha_1_time).make_call();
-            ha1Time.set_time(strForDisplay);
+            ha1Time.set_time(str);
             ha1Time.perform();
           }
           else if (index == 2) {
             auto ha2Time = id(ha_2_time).make_call();
-            ha2Time.set_time(strForDisplay);
+            ha2Time.set_time(str);
             ha2Time.perform();
           }
           else if (index == 3) {
             auto ha3Time = id(ha_3_time).make_call();
-            ha3Time.set_time(strForDisplay);
+            ha3Time.set_time(str);
             ha3Time.perform();
           }
           else if (index == 4) {
             auto ha4Time = id(ha_4_time).make_call();
-            ha4Time.set_time(strForDisplay);
+            ha4Time.set_time(str);
             ha4Time.perform();
           }
           else if (index == 5) {
@@ -2406,18 +2561,13 @@ script:
     mode: single
     then:
       - lambda: |-
-          time_t currentTimeForAlarm = id(ntp).now().timestamp;
+          esphome::ESPTime eCurrentTimeForAlarm = id(ntp).now();
+          time_t currentTimeForAlarm = eCurrentTimeForAlarm.timestamp;
 
           //get time to calculate with
-          char cCurrentHour[5];
-          char cCurrentMinute[5];
-          char cCurrentSecond[5];
-          strftime(cCurrentHour, sizeof(cCurrentHour), "%H", localtime(&currentTimeForAlarm));
-          strftime(cCurrentMinute, sizeof(cCurrentMinute), "%M", localtime(&currentTimeForAlarm));
-          strftime(cCurrentSecond, sizeof(cCurrentSecond), "%S", localtime(&currentTimeForAlarm));
-          int iCurrentHour = atoi(cCurrentHour);
-          int iCurrentMinute = atoi(cCurrentMinute);
-          int iCurrentSecond = atoi(cCurrentSecond);
+          int iCurrentHour = eCurrentTimeForAlarm.hour;
+          int iCurrentMinute = eCurrentTimeForAlarm.minute;
+          int iCurrentSecond = eCurrentTimeForAlarm.second;
           int iAlarmHours = id(alarm_hour).state;
           int iAlarmMinutes = id(alarm_minute).state;
 
@@ -2440,40 +2590,15 @@ script:
                 }
               }
             }
-            else if (id(alarm_on).state) { // increase volume with alarmVolumeIncrease if it is on for alarmVolumeIncreaseDuration seconds
+            else if (id(alarm_on).state) {
               esphome::ESPTime eAlarmTimeStamp = id(alarm_on_timestamp).state_as_esptime();
               int iAlarmTimeStamp = eAlarmTimeStamp.timestamp;
 
               int iAlarmOnTimestampHour = id(alarm_on_timestamp).hour;
               int iAlarmOnTimestampMinute = id(alarm_on_timestamp).minute;
               alarmTimeStamp = iCurrentTimeForAlarmMidnight + (iAlarmOnTimestampHour * 60  * 60) + (iAlarmOnTimestampMinute * 60);
-              int alarmVolumeIncreaseDuration = id(alarm_volume_increase_duration).state;
-              int alarmVolumeIncrease = id(alarm_volume_increase).state;
+
               int alarmDuration = currentTimeForAlarmTimeStamp - alarmTimeStamp;
-              if (alarmVolumeIncreaseDuration != 0 && alarmVolumeIncrease != 0) { //alarm volume increase check
-                if (currentTimeForAlarmTimeStamp != alarmTimeStamp) { // its not at 0
-                  int result = alarmDuration % alarmVolumeIncreaseDuration;
-                  //ESP_LOGD("check_alarms", "alarmDuration %i", alarmDuration);
-                  //ESP_LOGD("check_alarms", "result 1 %i", result);
-                  if (result == 0) { //the remainder is 0, which means alarmVolumeIncreaseDuration has passed
-                    ESP_LOGD("check_alarms", "alarmVolumeIncreaseDuration %i seconds since alarm start %i has passed", alarmVolumeIncreaseDuration, iAlarmTimeStamp);
-                    //ESP_LOGD("check_alarms", "currentTimeForAlarmTimeStamp %i", currentTimeForAlarmTimeStamp);
-                    //ESP_LOGD("check_alarms", "alarmTimeStamp %i", alarmTimeStamp);
-                    //ESP_LOGD("check_alarms", "result 2 %i", result);
-                    //ESP_LOGD("check_alarms", "alarmVolumeIncreaseDuration %i", alarmVolumeIncreaseDuration);
-                    result = alarmDuration / alarmVolumeIncreaseDuration;
-                    ///ESP_LOGD("check_alarms", "result 3 %i", result);
-                    if (result > 0) {
-                      int newVolume = id(alarm_volume).state + (result * alarmVolumeIncrease); //add number of passed alarmVolumeIncreaseDuration to the known base volume
-                      if (newVolume > 100) {
-                        newVolume = 100;
-                      }
-                      id(set_volume).execute(newVolume);
-                      ESP_LOGD("check_alarms", "Updating volume with %i", newVolume);
-                    }
-                  }
-                }
-              }
 
               if (!id(alarm_on_local).state && id(alarm_on_local_after_seconds).state > 0) { //local alarm on after alarm_on_local_after_seconds check
                 esphome::ESPTime eAlarmOffLocalTimeStamp = id(alarm_off_local_timestamp).state_as_esptime();
@@ -2575,7 +2700,7 @@ script:
           }
   - id: set_alarm_last_off
     then:
-      - lambda:
+      - lambda: |-
           id(alarm_last_off) = id(ntp).now().timestamp;
           ESP_LOGD("set_alarm_last_off", "alarm_last_off %i", id(alarm_last_off));
   - id: set_volume
@@ -2589,7 +2714,7 @@ script:
           return newVolumeFloat;
   - id: play_url
     then:
-      - lambda:
+      - lambda: |-
           const esphome::optional<std::string> url = id(media_player_alarm).make_call().get_media_url();
           if (url.has_value()) {
             ESP_LOGD("play_url", "Media has URL");
@@ -2607,7 +2732,7 @@ script:
     mode: queued
     then:
       - delay: 1000ms
-      - lambda:
+      - lambda: |-
           std::time_t now;
           struct tm now_tm;
           if (id(time_sync_done) == false) {
@@ -2640,3 +2765,48 @@ script:
                   id(contrast_current) = std::max(id(contrast_current) - step, id(contrast_target));
                 alarmdisplay->set_contrast(id(contrast_current));
             - delay: 50ms
+  - id: alarm_volume_manager
+    mode: single
+    then:
+      - while:
+          condition:
+            and:
+              - switch.is_on: alarm_on
+              - lambda: "return (id(alarm_volume_increase_duration).state > 0 && id(alarm_volume_increase).state > 0);"
+          then:
+            - lambda: |-
+                esphome::ESPTime eCurrentTimeForAlarm = id(ntp).now();
+                time_t currentTimeForAlarm = eCurrentTimeForAlarm.timestamp;
+
+                esphome::ESPTime eAlarmTimeStamp = id(alarm_on_timestamp).state_as_esptime();
+                int iAlarmTimeStamp = eAlarmTimeStamp.timestamp;
+
+                int alarmVolumeIncreaseDuration = id(alarm_volume_increase_duration).state;
+                int alarmVolumeIncrease = id(alarm_volume_increase).state;
+                int alarmDuration = eCurrentTimeForAlarm.timestamp - eAlarmTimeStamp.timestamp;
+                if (eCurrentTimeForAlarm.timestamp != eAlarmTimeStamp.timestamp) { // its not at 0
+                  int result = alarmDuration % alarmVolumeIncreaseDuration;
+                  if (result == 0) { //the remainder is 0, which means alarmVolumeIncreaseDuration has passed
+                    //ESP_LOGD("alarm_volume_manager", "alarmDuration %i seconds. alarm start at %i seconds. alarmVolumeIncreaseDuration is %i seconds", alarmDuration, iAlarmTimeStamp, alarmVolumeIncreaseDuration);
+                    result = alarmDuration / alarmVolumeIncreaseDuration;
+                    if (result > 0) {
+                      int startVolume = id(alarm_volume_increase_start).state;
+                      //ESP_LOGD("alarm_volume_manager", "startVolume %i result %i", startVolume, result);
+                      if (startVolume == 0) {
+                        startVolume = id(alarm_volume).state;
+                      }
+                      //ESP_LOGD("alarm_volume_manager", "startVolume 2 %i", startVolume);
+                      int newVolume = startVolume + (result * alarmVolumeIncrease); //add number of passed alarmVolumeIncreaseDuration to the known base volume
+                      int maxVolume = id(alarm_volume_increase_end).state;
+                      if (maxVolume > 0 && newVolume > maxVolume) {
+                        newVolume = maxVolume;
+                      }
+                      else if (newVolume > 100) {
+                        newVolume = 100;
+                      }
+                      id(set_volume).execute(newVolume);
+                      ESP_LOGD("alarm_volume_manager", "Updating volume with %i", newVolume);
+                    }
+                  }
+                }
+            - delay: 1s

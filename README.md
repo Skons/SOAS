@@ -68,6 +68,7 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
 * Decent sound.
 * Ability to hide the clock
 * Volume increase of the alarm after a defined time of alarming
+  - Start and / or end volume can be configured
 * Ability to switch off display completely
   - Display is switched on every alarm.
 * Ability to "Display on/off automatically"
@@ -99,7 +100,7 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
 * [3W speaker](https://nl.aliexpress.com/item/32593991938.html) ~ €3,-
 * [Rotary button, EC11 W Half 20mm](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
 * A button to be used on top of the clock, the following are supported:
-  - [Flat head button](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
+  - [Flat head button, 16mm](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
   - [Micro tactile switch, 6x6x5](https://nl.aliexpress.com/item/1005004971266223.html) < 0,10 per piece
 
 ## <a name='Optional'></a>Optional
@@ -482,6 +483,15 @@ The alarm can be edited by single clicking the rotary button. This will make the
 #### <a name='Rotarydoubleclick-1'></a>Rotary double click
 Double click will enable or disable the alarm.
 
+### Alarm volume page
+
+The Alarm volume page allows you to edit the volume that will be applied when the alarm goes off. The `Alarm volume increase duration` and `Alarm volume increase` should both be higher then 0 for this automatic volume to work. Enter edit mode with a rotary button single click, it will edit the following 4 respectively after each single click:
+
+1. Alarm volume increase start - The volume applied when the alarm goes of. Set to 0 to have de default volume applied. Must always be lower or equal to the end volume.
+2. Alarm volume increase end - The max volume that will be applied, if set tot 0 the max volume will be 100. Must always be equal or higher to the start volume.
+3. Alarm volume increase - The volume that will be added each time the duration has passed.
+4. Alarm volume increase duration - The duration it takes before an increase will be applied
+
 ### <a name='HomeAssitantpage123and4'></a>Home Assitant page 1,2,3 and 4
 
 This page displays if the Home Assistant switch is enabled, if the Home Assistant switch is associated with the alarm enabled and it shows the time relative to the alarm time. If the Home Assistant switch is enabled, it will switch to on even if the alarm is disabled.
@@ -523,8 +533,6 @@ A few options are not (yet) available on the alarm self:
 * Snooze duration
 * Display Mode
 * Hide clock
-* Alarm volume increase - The increase of volume after `Alarm volume increase duration`. Set to 0 to disable this feature.
-* Alarm volume increase duration - The seconds that need to pass before the alarm volume is increased with `Alarm volume increase`. Set to 0 to disable this feature.
 * Alarm on local after seconds - This will force the local alarm, even if the normal alarm is sounding. Set to 0 to disable this feature.
 * Night mode - This mode is enabled by the sun long lat by default. `Night mode automatically` switched off will not switch the mode without a Home Assistant automation
 
