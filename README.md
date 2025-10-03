@@ -481,6 +481,8 @@ The SH1107 display contains more pixel space, therefor the day of the week and d
 #### <a name='Rotarysingleclick-1'></a>Rotary single click
 The alarm can be edited by single clicking the rotary button. This will make the time blink that is in edit mode. Single again and it will bring you to the minute. The last single click allows for editing the time it will take for the local alarm to be on. Keep in mind that you need to have local alarm support on your clock. Turning the rotary button is used to edit the hour, minute or alarm on local after seconds.
 
+If the SH1106 is used, the alarm on local after seconds is only visible when the edit mode is passed the editing of the minutes. On the sh1107 it all fits on the same page.
+
 #### <a name='Rotarydoubleclick-1'></a>Rotary double click
 Double click will enable or disable the alarm.
 
@@ -492,6 +494,8 @@ The Alarm volume page allows you to edit the volume that will be applied when th
 2. Alarm volume increase end - The max volume that will be applied, if set tot 0 the max volume will be 100. Must always be equal or higher to the start volume.
 3. Alarm volume increase - The volume that will be added each time the duration has passed.
 4. Alarm volume increase duration - The duration it takes before an increase will be applied
+
+When the SH1106 is used, the Alarm volume increase and Alarm volume increase duration is only visible when the edit mode reaches the Alarm volume increase item. On the SH1107 it all fits on the same page.
 
 ### <a name='HomeAssitantpage123and4'></a>Home Assitant page 1,2,3 and 4
 
