@@ -77,7 +77,8 @@ font:
             "\U000F154B", #SortClockDescending
             "\U000F0996", #ProgressClock
             "\U000F073A", #Cancel
-            "\U000F0FDF", #SlashForward
+            "\U000F015A", #CloseCircleOutline
+            "\U000F135A", #FolderMusicOutline
           ]
   - id: robotomedium51
     file: fonts/Roboto-Medium.ttf
@@ -445,7 +446,7 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.10.2.1"};
+    lambda: return {"2025.10.3.1"};
     update_interval: 4294966296s
 
   # - name: "Debug logger"
@@ -915,7 +916,7 @@ binary_sensor:
                     else if (current_page_value > 1 && current_page_value < 9) {
                       int maxValue = 1; //ha minute page & sleep timer
                       if (current_page_value == 2) { //alarm clock page
-                        maxValue = 2;
+                        maxValue = 3;
                       }
                       if (current_page_value == 3) { //alarm volume page
                         maxValue = 4;
@@ -1586,35 +1587,55 @@ display:
           it.get_text_bounds(0, 0, timeString.c_str(), id(robotomedium30), TextAlign::TOP_CENTER, &calculated_x, &calculated_y, &calculated_width, &calculated_height); //calculate second indicator width
           int indicatorWidth = calculated_width;
 
-          //alarm clock icon
-          it.printf(0, (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F0020");
+          int verticalCorrection = 16;
+          int height = it.get_height();
+          if (height == 128) {
+            height = height /2;
+          }
+          height = height - verticalCorrection;
 
-          //alarm clock
+          int iconVerticalCorrection = 5;
           int rotate_switch_single_value = id(rotate_switch_single);
+          if (it.get_height() == 128 || (it.get_height() == 64 && rotate_switch_single_value < 3)) {
+            //alarm clock icon
+            it.printf(0, height-iconVerticalCorrection, id(robotomedium20), TextAlign::BOTTOM_LEFT, "\U000F0020");
 
-          if ((shouldBlink && rotate_switch_single_value == 1) || rotate_switch_single_value != 1) {
-            if (id(alarm_hour).state > 9) {
-              it.printf((it.get_width()/2)-(indicatorWidth/2), (it.get_height()/2), id(robotomedium30), TextAlign::CENTER_RIGHT, "%i", (int)id(alarm_hour).state);
+            //alarm clock
+            if ((shouldBlink && rotate_switch_single_value == 1) || rotate_switch_single_value != 1) {
+              if (id(alarm_hour).state > 9) {
+                it.printf((it.get_width()/2)-(indicatorWidth/2), height, id(robotomedium30), TextAlign::BOTTOM_RIGHT, "%i", (int)id(alarm_hour).state);
+              }
+              else {
+                it.printf((it.get_width()/2)-(indicatorWidth/2), height, id(robotomedium30), TextAlign::BOTTOM_RIGHT, "0%i", (int)id(alarm_hour).state);
+              }
             }
-            else {
-              it.printf((it.get_width()/2)-(indicatorWidth/2), (it.get_height()/2), id(robotomedium30), TextAlign::CENTER_RIGHT, "0%i", (int)id(alarm_hour).state);
+            it.printf((it.get_width()/2), height, id(robotomedium30), TextAlign::BOTTOM_CENTER, ":");
+            if ((shouldBlink && rotate_switch_single_value == 2) || rotate_switch_single_value != 2) {
+              if (id(alarm_minute).state > 9) {
+                it.printf((it.get_width()/2)+(indicatorWidth/2), height, id(robotomedium30), TextAlign::BOTTOM_LEFT, "%i", (int)id(alarm_minute).state);
+              }
+              else {
+                it.printf((it.get_width()/2)+(indicatorWidth/2), height, id(robotomedium30), TextAlign::BOTTOM_LEFT, "0%i", (int)id(alarm_minute).state);
+              }
             }
-          }
-          it.printf((it.get_width()/2), (it.get_height()/2), id(robotomedium30), TextAlign::CENTER, ":");
-          if ((shouldBlink && rotate_switch_single_value == 2) || rotate_switch_single_value != 2) {
-            if (id(alarm_minute).state > 9) {
-              it.printf((it.get_width()/2)+(indicatorWidth/2), (it.get_height()/2), id(robotomedium30), TextAlign::CENTER_LEFT, "%i", (int)id(alarm_minute).state);
+
+            std::string alarmEnabledIcon = "\U000F0131"; //disabled
+            if (id(alarm_enabled).state) {
+              alarmEnabledIcon = "\U000F0C52";
             }
-            else {
-              it.printf((it.get_width()/2)+(indicatorWidth/2), (it.get_height()/2), id(robotomedium30), TextAlign::CENTER_LEFT, "0%i", (int)id(alarm_minute).state);
-            }
+            it.printf(it.get_width(), height-iconVerticalCorrection, id(robotomedium20), TextAlign::BOTTOM_RIGHT, alarmEnabledIcon.c_str());
           }
 
-          if (id(alarm_enabled).state) {
-            it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0C52");
-          }
-          else {
-            it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0131");
+          //U000F135A
+          if (it.get_height() == 128 || (it.get_height() == 64 && rotate_switch_single_value > 2)) {
+            std::string alarmOnLocalAfterSecondsIcon = "\U000F135A";
+            if (shouldBlink && (int)id(alarm_on_local_after_seconds).state == 0) {
+              alarmOnLocalAfterSecondsIcon = "\U000F073A";
+            }
+            it.printf(0, (it.get_height()-verticalCorrection)-iconVerticalCorrection, id(robotomedium20), TextAlign::BOTTOM_LEFT, alarmOnLocalAfterSecondsIcon.c_str());
+            if ((shouldBlink && rotate_switch_single_value == 3) || rotate_switch_single_value != 3) {
+              it.printf((it.get_width()/2), it.get_height()-verticalCorrection, id(robotomedium30), TextAlign::BOTTOM_CENTER, "%i", (int)id(alarm_on_local_after_seconds).state);
+            }
           }
 
           id(current_page_id) = 2;
@@ -1627,25 +1648,25 @@ display:
 
           std::string topText = "Alarm Volume";
           if (shouldBlink) {
-            if (rotate_switch_single_value == 1) {
+            if (rotate_switch_single_value == 3) {
               topText = "Start";
               if (language == "NL") {
                 topText = "Begin";
               }
             }
-            else if (rotate_switch_single_value == 2) {
+            else if (rotate_switch_single_value == 4) {
               topText = "End";
               if (language == "NL") {
                 topText = "Eind";
               }
             }
-            else if (rotate_switch_single_value == 3) {
+            else if (rotate_switch_single_value == 1) {
               topText = "Increase";
               if (language == "NL") {
                 topText = "Stijging";
               }
             }
-            else if (rotate_switch_single_value == 4) {
+            else if (rotate_switch_single_value == 2) {
               topText = "Duration";
               if (language == "NL") {
                 topText = "Duur";
@@ -1659,46 +1680,54 @@ display:
           int alarmVolumeIncrease = id(alarm_volume_increase).state;
           int alarmVolumeIncreaseDuration = id(alarm_volume_increase_duration).state;
           if (it.get_height() == 128 || (it.get_height() == 64 && rotate_switch_single_value < 3)) {
-            if ((alarmVolumeIncreaseStart == 0 || (alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0)) && shouldBlink) {
+            if ((alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0) && shouldBlink) {
               it.printf(0, 50, id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F073A");
             }
             else {
-              it.printf(0, 50, id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F0155");
+              it.printf(0, 50, id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F154B");
             }
             if ((shouldBlink && rotate_switch_single_value == 1) || rotate_switch_single_value != 1) {
-              it.printf(20, 64, id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", alarmVolumeIncreaseStart);
+              it.printf(20, 64, id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", (int)id(alarm_volume_increase).state);
             }
 
-            if ((alarmVolumeIncreaseEnd == 0 || (alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0)) && shouldBlink) {
+            if ((alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0) && shouldBlink) {
               it.printf(64, 50, id(robotomedium20), TextAlign::CENTER_LEFT , "\U000F073A");
             }
             else {
-              it.printf(64, 50, id(robotomedium20), TextAlign::CENTER_LEFT , "\U000F0151");
+              it.printf(64, 50, id(robotomedium20), TextAlign::CENTER_LEFT , "\U000F0996");
             }
             if ((shouldBlink && rotate_switch_single_value == 2) || rotate_switch_single_value != 2) {
-              it.printf(84, 64, id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", alarmVolumeIncreaseEnd);
+              it.printf(84, 64, id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", (int)id(alarm_volume_increase_duration).state);
             }
           }
 
           if (it.get_height() == 128 || (it.get_height() == 64 && rotate_switch_single_value > 2)) {
-            if ((alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0) && shouldBlink) {
-              it.printf(0, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F073A");
+            if ((alarmVolumeIncreaseStart == 0 || (alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0)) && shouldBlink) {
+              std::string alarmVolumeIncreaseStartIcon = "\U000F015A";
+              if (alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0) {
+                alarmVolumeIncreaseStartIcon = "\U000F073A";
+              }
+              it.printf(0, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT, alarmVolumeIncreaseStartIcon.c_str());
             }
             else {
-              it.printf(0, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F154B");
+              it.printf(0, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F0155");
             }
             if ((shouldBlink && rotate_switch_single_value == 3) || rotate_switch_single_value != 3) {
-              it.printf(20, it.get_height(), id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", (int)id(alarm_volume_increase).state);
+              it.printf(20, it.get_height(), id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", alarmVolumeIncreaseStart);
             }
 
-            if ((alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0) && shouldBlink) {
-              it.printf(64, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT , "\U000F073A");
+            if ((alarmVolumeIncreaseEnd == 0 || (alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0)) && shouldBlink) {
+              std::string alarmVolumeIncreaseEndIcon = "\U000F015A";
+              if (alarmVolumeIncrease == 0 || alarmVolumeIncreaseDuration == 0) {
+                alarmVolumeIncreaseEndIcon = "\U000F073A";
+              }
+              it.printf(64, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT , alarmVolumeIncreaseEndIcon.c_str());
             }
             else {
-              it.printf(64, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT , "\U000F0996");
+              it.printf(64, (it.get_height()-15), id(robotomedium20), TextAlign::CENTER_LEFT , "\U000F0151");
             }
             if ((shouldBlink && rotate_switch_single_value == 4) || rotate_switch_single_value != 4) {
-              it.printf(84, it.get_height(), id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", (int)id(alarm_volume_increase_duration).state);
+              it.printf(84, it.get_height(), id(robotomedium25), TextAlign::BOTTOM_LEFT, "%i", alarmVolumeIncreaseEnd);
             }
           }
 
@@ -2074,97 +2103,78 @@ script:
           //ESP_LOGD("rotary_encoder_script", "Current page id %i", current_page_id_value);
 
           if (current_page_id_value == 2) { //alarm clock page
-            int hour_value = id(alarm_hour).state;
-            int minute_value = id(alarm_minute).state;
             if (rotate_switch_single_value == 1) { //update hours
+              int alarmHour = id(alarm_hour).state;
               if (clockwise == true) {
-                hour_value += 1;
-                if (hour_value > 23) {
-                  hour_value = 0;
+                alarmHour += 1;
+                if (alarmHour > 23) {
+                  alarmHour = 0;
                 }
               }
               else {
-                hour_value -= 1;
-                if (hour_value < 0) {
-                  hour_value = 23;
+                alarmHour -= 1;
+                if (alarmHour < 0) {
+                  alarmHour = 23;
                 }
               }
               auto call = id(alarm_hour).make_call();
-              call.set_value(hour_value);
+              call.set_value(alarmHour);
               call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_hour to %i", rotation.c_str(), hour_value);
+              ESP_LOGD("rotary_encoder_script", "%s setting alarm_hour to %i", rotation.c_str(), alarmHour);
             }
             else if (rotate_switch_single_value == 2) { //update minute
+              int alarmMinute = id(alarm_minute).state;
               if (clockwise == true) {
-                minute_value += 1;
-                if (minute_value > 59) {
-                  minute_value = 0;
+                alarmMinute += 1;
+                if (alarmMinute > 59) {
+                  alarmMinute = 0;
                 }
               }
               else {
-                minute_value -= 1;
-                if (minute_value < 0) {
-                  minute_value = 59;
+                alarmMinute -= 1;
+                if (alarmMinute < 0) {
+                  alarmMinute = 59;
                 }
               }
               auto call = id(alarm_minute).make_call();
-              call.set_value(minute_value);
+              call.set_value(alarmMinute);
               call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_minute to %i", rotation.c_str(), alarm_minute);
+              ESP_LOGD("rotary_encoder_script", "%s setting alarm_minute to %i", rotation.c_str(), alarmMinute);
+            }
+            else if (rotate_switch_single_value == 3) { //update alarm_on_local_after_seconds
+              int alarmOnLocalAfterSeconds = id(alarm_on_local_after_seconds).state;
+              if (clockwise == true) {
+                alarmOnLocalAfterSeconds += 30;
+                if (alarmOnLocalAfterSeconds > 300) {
+                  alarmOnLocalAfterSeconds = 0;
+                }
+              }
+              else {
+                alarmOnLocalAfterSeconds -= 30;
+                if (alarmOnLocalAfterSeconds < 0) {
+                  alarmOnLocalAfterSeconds = 300;
+                }
+              }
+              auto call = id(alarm_on_local_after_seconds).make_call();
+              call.set_value(alarmOnLocalAfterSeconds);
+              call.perform();
+              ESP_LOGD("rotary_encoder_script", "%s setting alarm_on_local_after_seconds to %i", rotation.c_str(), alarm_on_local_after_seconds);
             }
           }
           else if (current_page_id_value == 3) { //update alarm volume
             ESP_LOGD("rotary_encoder_script", "rotate_switch_single_value %i", rotate_switch_single_value);
-            if (rotate_switch_single_value == 1) { //update alarm_volume_increase_start
-              int alarmVolumeIncreaseStart = id(alarm_volume_increase_start).state;
-              if (clockwise == true) {
-                alarmVolumeIncreaseStart += 1;
-                if (alarmVolumeIncreaseStart > 100) {
-                  alarmVolumeIncreaseStart = 0;
-                }
-              }
-              else {
-                alarmVolumeIncreaseStart -= 1;
-                if (alarmVolumeIncreaseStart < 0) {
-                  alarmVolumeIncreaseStart = 100;
-                }
-              }
-              auto call = id(alarm_volume_increase_start).make_call();
-              call.set_value(alarmVolumeIncreaseStart);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_start to %i", rotation.c_str(), alarmVolumeIncreaseStart);
-            }
-            else if (rotate_switch_single_value == 2) { //update alarm_volume_increase_end
-              int alarmVolumeIncreaseEnd = id(alarm_volume_increase_end).state;
-              if (clockwise == true) {
-                alarmVolumeIncreaseEnd += 1;
-                if (alarmVolumeIncreaseEnd > 100) {
-                  alarmVolumeIncreaseEnd = 0;
-                }
-              }
-              else {
-                alarmVolumeIncreaseEnd -= 1;
-                if (alarmVolumeIncreaseEnd < 0) {
-                  alarmVolumeIncreaseEnd = 100;
-                }
-              }
-              auto call = id(alarm_volume_increase_end).make_call();
-              call.set_value(alarmVolumeIncreaseEnd);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_end to %i", rotation.c_str(), alarmVolumeIncreaseEnd);
-            }
-            else if (rotate_switch_single_value == 3) { //update alarm_volume_increase
+            if (rotate_switch_single_value == 1) { //update alarm_volume_increase
               int alarmVolumeIncrease = id(alarm_volume_increase).state;
               if (clockwise == true) {
                 alarmVolumeIncrease += 1;
                 if (alarmVolumeIncrease > 100) {
-                  alarmVolumeIncrease = 0;
+                  alarmVolumeIncrease = 100;
                 }
               }
               else {
                 alarmVolumeIncrease -= 1;
                 if (alarmVolumeIncrease < 0) {
-                  alarmVolumeIncrease = 100;
+                  alarmVolumeIncrease = 0;
                 }
               }
               auto call = id(alarm_volume_increase).make_call();
@@ -2172,7 +2182,7 @@ script:
               call.perform();
               ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase to %i", rotation.c_str(), alarmVolumeIncrease);
             }
-            else if (rotate_switch_single_value == 4) { //update alarm_volume_increase_duration
+            else if (rotate_switch_single_value == 2) { //update alarm_volume_increase_duration
               int alarmVolumeIncreaseDuration = id(alarm_volume_increase_duration).state;
               if (clockwise == true) {
                 alarmVolumeIncreaseDuration += 1;
@@ -2190,6 +2200,44 @@ script:
               call.set_value(alarmVolumeIncreaseDuration);
               call.perform();
               ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_duration to %i", rotation.c_str(), alarmVolumeIncreaseDuration);
+            }
+            else if (rotate_switch_single_value == 3) { //update alarm_volume_increase_start
+              int alarmVolumeIncreaseStart = id(alarm_volume_increase_start).state;
+              if (clockwise == true) {
+                alarmVolumeIncreaseStart += 1;
+                if (alarmVolumeIncreaseStart > 100) {
+                  alarmVolumeIncreaseStart = 100;
+                }
+              }
+              else {
+                alarmVolumeIncreaseStart -= 1;
+                if (alarmVolumeIncreaseStart < 0) {
+                  alarmVolumeIncreaseStart = 0;
+                }
+              }
+              auto call = id(alarm_volume_increase_start).make_call();
+              call.set_value(alarmVolumeIncreaseStart);
+              call.perform();
+              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_start to %i", rotation.c_str(), alarmVolumeIncreaseStart);
+            }
+            else if (rotate_switch_single_value == 4) { //update alarm_volume_increase_end
+              int alarmVolumeIncreaseEnd = id(alarm_volume_increase_end).state;
+              if (clockwise == true) {
+                alarmVolumeIncreaseEnd += 1;
+                if (alarmVolumeIncreaseEnd > 100) {
+                  alarmVolumeIncreaseEnd = 100;
+                }
+              }
+              else {
+                alarmVolumeIncreaseEnd -= 1;
+                if (alarmVolumeIncreaseEnd < 0) {
+                  alarmVolumeIncreaseEnd = 0;
+                }
+              }
+              auto call = id(alarm_volume_increase_end).make_call();
+              call.set_value(alarmVolumeIncreaseEnd);
+              call.perform();
+              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_end to %i", rotation.c_str(), alarmVolumeIncreaseEnd);
             }
           }
           else if (current_page_id_value > 3 && current_page_id_value < 8) { //ha pages

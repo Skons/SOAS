@@ -478,7 +478,7 @@ The SH1107 display contains more pixel space, therefor the day of the week and d
 ### <a name='Alarmpage'></a>Alarm page
 
 #### <a name='Rotarysingleclick-1'></a>Rotary single click
-The alarm can be edited by single clicking the rotary button. This will make the time blink that is in edit mode. Single again and it will bring you to the minute. The rotary button is used to edit the hour or minute.
+The alarm can be edited by single clicking the rotary button. This will make the time blink that is in edit mode. Single again and it will bring you to the minute. The last single click allows for editing the time it will take for the local alarm to be on. Keep in mind that you need to have local alarm support on your clock. Turning the rotary button is used to edit the hour, minute or alarm on local after seconds.
 
 #### <a name='Rotarydoubleclick-1'></a>Rotary double click
 Double click will enable or disable the alarm.
