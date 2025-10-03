@@ -32,6 +32,7 @@
 	* [Alarm page](#Alarmpage)
 		* [Rotary single click](#Rotarysingleclick-1)
 		* [Rotary double click](#Rotarydoubleclick-1)
+	* [Alarm volume page](#Alarmvolumepage)
 	* [Home Assitant page 1,2,3 and 4](#HomeAssitantpage123and4)
 		* [Rotary single click](#Rotarysingleclick-1)
 		* [Rotary double click](#Rotarydoubleclick-1)
@@ -483,7 +484,7 @@ The alarm can be edited by single clicking the rotary button. This will make the
 #### <a name='Rotarydoubleclick-1'></a>Rotary double click
 Double click will enable or disable the alarm.
 
-### Alarm volume page
+### <a name='Alarmvolumepage'></a>Alarm volume page
 
 The Alarm volume page allows you to edit the volume that will be applied when the alarm goes off. The `Alarm volume increase duration` and `Alarm volume increase` should both be higher then 0 for this automatic volume to work. Enter edit mode with a rotary button single click, it will edit the following 4 respectively after each single click:
 

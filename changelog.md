@@ -9,6 +9,7 @@
   - Added page to configure these settings on the clock itself
 - Refactored time handling in all lambdas for more efficiency
 - Refactored page handling code
+- Really added rotary button specification issue [#35](https://github.com/Skons/SOAS/issues/35)
 
 ## 2025.9.26.1
 - **BREAKING** Top button long press switched to double press. Works better with the tactile button
