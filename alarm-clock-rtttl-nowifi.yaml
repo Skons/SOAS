@@ -120,8 +120,6 @@ script:
     then:
       - lambda: |-
           int soasUptime = id(soas_uptime).state;
-          ESP_LOGD("alarm_on_rtttl_watchdog", "Uptime %i", soasUptime);
-
           if (!id(wifi_initially_connected) && id(alarm_on).state && soasUptime >= 60) {
             //do nothing, time sync needs to be done
             ESP_LOGD("alarm_on_rtttl_watchdog", "Alarm is on, uptime is 60 seconds, lets sound rtttl");
