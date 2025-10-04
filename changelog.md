@@ -1,5 +1,16 @@
 # Changelog
 
+## 2025.10.4.1
+- Added `alarm_on_local_after_seconds` to the alarm clock settings page
+- Refactored the volume increase on alarm functionality
+  - Added volume start level
+  - Added volume end level
+  - More finegrained duration of wait until volume increase
+  - Added page to configure these settings on the clock itself
+- Refactored time handling in all lambdas for more efficiency
+- Refactored page handling code
+- Really added rotary button specification issue [#35](https://github.com/Skons/SOAS/issues/35)
+
 ## 2025.9.26.1
 - **BREAKING** Top button long press switched to double press. Works better with the tactile button
 - Added triple top button press to be able to test `alarm_on`
