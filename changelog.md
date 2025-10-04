@@ -1,6 +1,6 @@
 # Changelog
 
-## 2025.9.30.1
+## 2025.10.4.1
 - Added `alarm_on_local_after_seconds` to the alarm clock settings page
 - Refactored the volume increase on alarm functionality
   - Added volume start level
