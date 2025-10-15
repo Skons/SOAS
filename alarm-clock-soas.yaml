@@ -150,7 +150,7 @@ globals:
     initial_value: '0'
   - id: contrast_current
     type: float
-    initial_value: '1.0'
+    initial_value: '0.04'
   - id: contrast_target
     type: float
     initial_value: '1.0'
