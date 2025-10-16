@@ -13,9 +13,10 @@ sensor:
       } else {
         return id(contrast_force) * 100.0f;
       }
+
   - platform: adc
-    id: light_sensor
-    name: "Illuminance"
+    id: light_sensor_raw
+    internal: true
     pin: $ldr_pin
     device_class: illuminance
     update_interval: 2s
@@ -27,33 +28,60 @@ sensor:
           float lux = ((x / 10000.0) * 2000000.0 - 15) + id(illuminance_offset_ui).state;
           if (lux < 0) lux = 0;
           return lux;
-      - delta: 5%
       - clamp:
           min_value: 0
     on_value:
       then:
         - lambda: |-
-            if (id(switch_autobrightness).state) {
-              //ESP_LOGD("light_sensor", "x = : %.2f", x);
-              //int n = x / 4 + $aab_add; // berechneter Zielwert (0-255)
-              int n = (x / $aab_scale) + $aab_offset + $aab_add;
-              if (n > $aab_max) n = $aab_max;
-              if (n < $aab_min) n = $aab_min;
+            static float last_val = -1.0;
+            bool send = false;
 
-              // convert to 0.0 - 1.0
-              float new_contrast = n / 255.0f;
+            // Initial publish, z.B. beim Boot oder wenn contrast_force < 0
+            if (last_val < 0 || id(contrast_force) < 0.0f) {
+              send = true;
+            } 
+            // Delta >5% check
+            else if (fabs(x - last_val) / (last_val > 0.01 ? last_val : 0.01) * 100.0 > 5.0) {
+              send = true;
+            }
 
-              float current = id(contrast_current);
-              float delta = new_contrast - current;
-              float diff_percent = (delta / (current > 0.01f ? current : 0.01f)) * 100.0f;
+            if (send) {
+              last_val = x;
+              id(light_sensor).publish_state(x);  // publish to HA
+              ESP_LOGD("light_sensor", "x = : %.2f", x);
 
-              // just set contrast when there is a significant change
-              if (abs(diff_percent) > 2.0f) {
-                //ESP_LOGD("light_sensor", "new contrast: %.2f", new_contrast);
-                id(contrast_force) = new_contrast;
-                id(smooth_contrast).execute();
+              // handle contrast
+              if (id(switch_autobrightness).state) {
+                int n = (x / $aab_scale) + $aab_offset + $aab_add;
+                if (n > $aab_max) n = $aab_max;
+                if (n < $aab_min) n = $aab_min;
+
+                float new_contrast = n / 255.0f;
+
+                // initial set contrast_force (if not valid)
+                if (id(contrast_force) < 0.0f) {
+                  id(contrast_force) = new_contrast;
+                  id(smooth_contrast).execute();
+                } else {
+                  float current = id(contrast_current);
+                  float delta_c = new_contrast - current;
+                  float diff_percent = (delta_c / (current > 0.01f ? current : 0.01f)) * 100.0f;
+                  if (fabs(diff_percent) > 2.0f) {
+                    id(contrast_force) = new_contrast;
+                    id(smooth_contrast).execute();
+                  }
+                }
               }
             }
+
+  - platform: template
+    name: "Illuminance"
+    id: light_sensor
+    unit_of_measurement: "lx"
+    device_class: illuminance
+    update_interval: never
+    lambda: |-
+      return id(light_sensor_raw).state;
 
 switch:
   - platform: template
