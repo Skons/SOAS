@@ -3,6 +3,10 @@ esphome:
     - priority: 800
       then:
         - script.execute: time_sync_wait
+    - priority: -100.0
+      then: #booting done
+        - lambda: 'id(boot_done) = true;'
+
 
 logger:
   on_message:
@@ -114,6 +118,9 @@ font:
     <<: *extras
 
 globals:
+  - id: boot_done
+    type: bool
+    initial_value: "false"
   - id: time_sync_done
     type: bool
     initial_value: "false"
@@ -157,6 +164,10 @@ globals:
   - id: contrast_force
     type: float
     initial_value: '-1.0'
+  - id: current_volume
+    type: int
+    initial_value: '-1'
+    restore_value: yes
 
 interval:
   - interval: 10s
@@ -446,7 +457,7 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.10.4.1"};
+    lambda: return {"2025.10.16.1"};
     update_interval: 4294966296s
 
   # - name: "Debug logger"
@@ -564,7 +575,7 @@ sensor:
                   condition:
                     lambda: |-
                       if (id(current_page_id) == 1 && (id(alarm_on).state || id(music_on).state)) {
-                        ESP_LOGD("rotary_encoder", "alarm is on, show volume");
+                        ESP_LOGD("rotary_encoder", "alarm or music is on, show volume");
                         return true;
                       }
                       return false;
@@ -613,7 +624,7 @@ sensor:
                   condition:
                     lambda: |-
                       if (id(current_page_id) == 1 && (id(alarm_on).state || id(music_on).state)) {
-                        ESP_LOGD("rotary_encoder", "alarm is on, show volume");
+                        ESP_LOGD("rotary_encoder", "alarm or music is on, show volume");
                         return true;
                       }
                       return false;
@@ -667,7 +678,7 @@ binary_sensor:
         - ON for at least 2s
         - OFF for at least 0.5s
         then:
-          - switch.turn_off: alarm_on_local
+          - script.execute: play_url
       - timing: #triple click
         - ON for at most 0.5s
         - OFF for at most 0.5s
@@ -2387,6 +2398,12 @@ script:
             id(reset_page_script).execute();
           }
           else if (current_page_id_value == 12) { //alarm volume page
+            if (id(alarm_on).state && (id(alarm_volume_increase_duration).state > 0 && id(alarm_volume_increase).state > 0)) {
+              ESP_LOGD("rotary_encoder_script", "Alarm is off with volume management, not changing volume");
+              id(reset_page_script_no_timeout).execute();
+              return;
+            }
+
             int value = id(alarm_volume).state;
             if (clockwise == false) {
               value -=1;
@@ -2715,8 +2732,8 @@ script:
     then:
       - lambda: |-
           //ESP_LOGD("media_player_watchdog", "Media player state %i", id(media_player_alarm).state);
-          if (!id(time_sync_done)) {
-            //do nothing, time sync needs to be done
+          if (!id(time_sync_done) && !id(boot_done)) {
+            //do nothing, time sync and boot needs to be finished
           }
           else if (id(media_player_alarm).state == 2 && !id(alarm_on).state && !id(music_on).state) { //MEDIA_PLAYER_STATE_NONE = 0 , MEDIA_PLAYER_STATE_IDLE = 1 , MEDIA_PLAYER_STATE_PLAYING = 2 , MEDIA_PLAYER_STATE_PAUSED = 3 ,  MEDIA_PLAYER_STATE_ANNOUNCING = 4
             ESP_LOGD("media_player_watchdog", "Media player is playing, alarm_on and music_on are switched off");
@@ -2755,11 +2772,16 @@ script:
     parameters:
       volume: int
     then:
-      - media_player.volume_set: !lambda
-          float newVolume = float(volume);
-          float newVolumeFloat = (newVolume/100);
-          ESP_LOGD("set_volume", "newVolume %f newVolumeFloat %f", newVolume, newVolumeFloat);
-          return newVolumeFloat;
+      if:
+        condition:
+          - lambda: "return (id(current_volume) != volume);"
+        then:
+          - media_player.volume_set: !lambda
+              float newVolume = float(volume);
+              float newVolumeFloat = (newVolume/100);
+              id(current_volume) = volume;
+              ESP_LOGD("set_volume", "newVolume %f newVolumeFloat %f", newVolume, newVolumeFloat);
+              return newVolumeFloat;
   - id: play_url
     then:
       - lambda: |-
@@ -2852,8 +2874,11 @@ script:
                       else if (newVolume > 100) {
                         newVolume = 100;
                       }
-                      id(set_volume).execute(newVolume);
-                      ESP_LOGD("alarm_volume_manager", "Updating volume with %i", newVolume);
+
+                      if (id(current_volume) != newVolume) {
+                        //ESP_LOGD("alarm_volume_manager", "update volume with %i", newVolume);
+                        id(set_volume).execute(newVolume);
+                      }
                     }
                   }
                 }
