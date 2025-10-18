@@ -457,7 +457,7 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.10.16.1"};
+    lambda: return {"2025.10.18.1"};
     update_interval: 4294966296s
 
   # - name: "Debug logger"
@@ -2785,18 +2785,18 @@ script:
   - id: play_url
     then:
       - lambda: |-
-          const esphome::optional<std::string> url = id(media_player_alarm).make_call().get_media_url();
-          if (url.has_value()) {
-            ESP_LOGD("play_url", "Media has URL");
-          }
-          else {
+          //const esphome::optional<std::string> url = id(media_player_alarm).make_call().get_media_url();
+          //if (url.has_value()) {
+          //  ESP_LOGD("play_url", "Media has URL");
+          //}
+          //else {
             ESP_LOGD("play_url", "Media has no URL");
             auto mediaPlayerCall = id(media_player_alarm).make_call();
             auto selectState = id(alarm_stream_url).state.c_str();
             mediaPlayerCall.set_media_url(selectState);
             mediaPlayerCall.perform();
             ESP_LOGD("play_url", "Setting stream url %s", selectState);
-          }
+          //}
           id(media_player_stopped) = 0;
   - id: time_sync_wait #this script calls itself until time is synced. if it was in boot, with delay, this script is all what the device will be doing
     mode: queued

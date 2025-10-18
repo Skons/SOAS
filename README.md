@@ -264,6 +264,8 @@ esp32:
 
 Created just for the Arduino framework to have a local file available when internet/wifi is down. This local file is for when internet is not available.
 
+Add `webserver:`to you main yaml file.
+
 Add this to the `substitutions:`
 
 ``` yaml

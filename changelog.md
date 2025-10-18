@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2025.10.16.1
+- **BREAKING** With ESPHome 2025.10.0 the audio server needed a rewrite. [#43](https://github.com/Skons/SOAS/issues/43)
+  - The `webserver` component is now required
+  - A minimum of 256KB is required,
 - Added `boot_done` to know if booting is done
 - `set_schedule_trigger_time_script` checks `boot_done`
 - Documentation improvements
