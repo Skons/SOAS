@@ -13,7 +13,7 @@ logger:
     level: ERROR
     then:
       - lambda: |-
-          //catch error thrown by speaker_media_player
+          //catch error thrown by speaker_media_player, works on esp idf based builds only
           if (tag == "speaker_media_player" && id(media_player_alarm).state == 2 && (id(alarm_on).state || id(music_on).state)) { //MEDIA_PLAYER_STATE_NONE = 0 , MEDIA_PLAYER_STATE_IDLE = 1 , MEDIA_PLAYER_STATE_PLAYING = 2 , MEDIA_PLAYER_STATE_PAUSED = 3 ,  MEDIA_PLAYER_STATE_ANNOUNCING = 4
             id(media_player_stopped) = id(media_player_stopped) + 1;
             int maxCounter = 4;
@@ -168,6 +168,10 @@ globals:
     type: int
     initial_value: '-1'
     restore_value: yes
+  - id: media_url
+    type: std::string
+    initial_value: '""'
+    restore_value: yes
 
 interval:
   - interval: 10s
@@ -272,10 +276,8 @@ number:
     step: 1
     mode: slider
     on_value:
-      - script.execute:
-          id: set_ha_0_trigger_time_script
-      - script.execute:
-          id: set_alarm_last_off
+      - script.execute: set_ha_0_trigger_time_script
+      - script.execute: set_alarm_last_off
   - name: "Alarm minute"
     platform: template
     id: alarm_minute
@@ -288,10 +290,8 @@ number:
     step: 1
     mode: slider
     on_value:
-      - script.execute:
-          id: set_ha_0_trigger_time_script
-      - script.execute:
-          id: set_alarm_last_off
+      - script.execute: set_ha_0_trigger_time_script
+      - script.execute: set_alarm_last_off
   - name: "Snooze duration"
     platform: template
     id: snooze_duration
@@ -315,8 +315,7 @@ number:
     step: 1
     mode: slider
     on_value:
-      - script.execute:
-          id: set_ha_1_trigger_time_script
+      - script.execute: set_ha_1_trigger_time_script
   - name: "Home Assistant 2 pre minute"
     platform: template
     id: ha_2_pre_minute
@@ -329,8 +328,7 @@ number:
     step: 1
     mode: slider
     on_value:
-      - script.execute:
-          id: set_ha_2_trigger_time_script
+      - script.execute: set_ha_2_trigger_time_script
   - name: "Home Assistant 3 pre minute"
     platform: template
     id: ha_3_pre_minute
@@ -343,8 +341,7 @@ number:
     step: 1
     mode: slider
     on_value:
-      - script.execute:
-          id: set_ha_3_trigger_time_script
+      - script.execute: set_ha_3_trigger_time_script
   - name: "Home Assistant 4 pre minute"
     platform: template
     id: ha_4_pre_minute
@@ -357,8 +354,7 @@ number:
     step: 1
     mode: slider
     on_value:
-      - script.execute:
-          id: set_ha_4_trigger_time_script
+      - script.execute: set_ha_4_trigger_time_script
   - name: "Alarm volume"
     platform: template
     id: alarm_volume
@@ -457,8 +453,8 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.10.18.1"};
-    update_interval: 4294966296s
+    lambda: return {"2025.10.24.1"};
+    update_interval: never
 
   # - name: "Debug logger"
   #   platform: template
@@ -568,8 +564,7 @@ sensor:
                 - switch.is_off: display_on
             then:
               - switch.turn_on: display_on
-              - script.execute:
-                  id: display_off_script
+              - script.execute: display_off_script
             else:
               - if:
                   condition:
@@ -581,8 +576,7 @@ sensor:
                       return false;
                   then:
                     - display.page.show: page12
-                    - script.execute:
-                        id: reset_page_script
+                    - script.execute: reset_page_script
                   else: #browse all pages
                     - if:
                         condition:
@@ -602,8 +596,7 @@ sensor:
                                 - display.page.show: page9
                               else:
                                 - display.page.show_previous: alarmdisplay
-                          - script.execute:
-                              id: reset_page_script
+                          - script.execute: reset_page_script
                         else: #edit items on page
                           - script.execute:
                               id: rotary_encoder_script
@@ -617,8 +610,7 @@ sensor:
                 - switch.is_off: display_on
             then:
               - switch.turn_on: display_on
-              - script.execute:
-                  id: display_off_script
+              - script.execute: display_off_script
             else:
               - if:
                   condition:
@@ -630,8 +622,7 @@ sensor:
                       return false;
                   then:
                     - display.page.show: page12
-                    - script.execute:
-                        id: reset_page_script
+                    - script.execute: reset_page_script
                   else: #browse all pages
                     - if:
                         condition:
@@ -651,8 +642,7 @@ sensor:
                                 - display.page.show: page1
                               else:
                                 - display.page.show_next: alarmdisplay
-                          - script.execute:
-                              id: reset_page_script
+                          - script.execute: reset_page_script
                         else: #edit items on page
                           - script.execute:
                               id: rotary_encoder_script
@@ -678,7 +668,9 @@ binary_sensor:
         - ON for at least 2s
         - OFF for at least 0.5s
         then:
-          - script.execute: play_url
+          - script.execute:
+              id: play_url
+              from_cache: false
       - timing: #triple click
         - ON for at most 0.5s
         - OFF for at most 0.5s
@@ -702,8 +694,7 @@ binary_sensor:
                   - switch.is_off: display_on
               then:
                 - switch.turn_on: display_on
-                - script.execute:
-                    id: display_off_script
+                - script.execute: display_off_script
               else:
                 - switch.turn_off: alarm_on
                 - delay: 1s #give the media_player a break
@@ -712,8 +703,7 @@ binary_sensor:
         - ON for at most ${alarm_off_button_single_click_time}
         - OFF for at least 0.5s
         then:
-          - script.execute:
-              id: display_off_script
+          - script.execute: display_off_script
           - lambda: |-
               if (id(display_on_off_automatically).state && !id(display_on).state) {
                 ESP_LOGD("alarm_off", "single click display on");
@@ -762,16 +752,14 @@ binary_sensor:
                   - switch.is_off: display_on
               then:
                 - switch.turn_on: display_on
-                - script.execute:
-                    id: display_off_script
+                - script.execute: display_off_script
               else:
                 - if:
                     condition:
                       display.is_displaying_page: page1
                     then:
                       - display.page.show: page11
-                      - script.execute:
-                          id: reset_page_script
+                      - script.execute: reset_page_script
       - timing: #triple click
         - ON for at most 0.5s
         - OFF for at most 0.5s
@@ -788,44 +776,38 @@ binary_sensor:
                   - switch.is_off: display_on
               then:
                 - switch.turn_on: display_on
-                - script.execute:
-                    id: display_off_script
+                - script.execute: display_off_script
               else:
                 - if:
                     condition:
                       display.is_displaying_page: page1
                     then:
                       - display.page.show: page12
-                      - script.execute:
-                          id: reset_page_script
+                      - script.execute: reset_page_script
                 - if:
                     condition:
                       display.is_displaying_page: page3
                     then:
                       - switch.toggle: ha_1_on
-                      - script.execute:
-                          id: reset_page_script_no_timeout
+                      - script.execute: reset_page_script_no_timeout
                 - if:
                     condition:
                       display.is_displaying_page: page4
                     then:
                       - switch.toggle: ha_2_on
-                      - script.execute:
-                          id: reset_page_script_no_timeout
+                      - script.execute: reset_page_script_no_timeout
                 - if:
                     condition:
                       display.is_displaying_page: page5
                     then:
                       - switch.toggle: ha_3_on
-                      - script.execute:
-                          id: reset_page_script_no_timeout
+                      - script.execute: reset_page_script_no_timeout
                 - if:
                     condition:
                       display.is_displaying_page: page6
                     then:
                       - switch.toggle: ha_4_on
-                      - script.execute:
-                          id: reset_page_script_no_timeout
+                      - script.execute: reset_page_script_no_timeout
       - timing: #double click
         - ON for at most 0.5s
         - OFF for at most 0.5s
@@ -840,16 +822,14 @@ binary_sensor:
                   - switch.is_off: display_on
               then:
                 - switch.turn_on: display_on
-                - script.execute:
-                    id: display_off_script
+                - script.execute: display_off_script
               else:
                 - if:
                     condition:
                       display.is_displaying_page: page1
                     then:
                       - display.page.show: page10
-                      - script.execute:
-                          id: reset_page_script
+                      - script.execute: reset_page_script
                 - if:
                     condition:
                       display.is_displaying_page: page2
@@ -911,8 +891,7 @@ binary_sensor:
                   - switch.is_off: display_on
               then:
                 - switch.turn_on: display_on
-                - script.execute:
-                    id: display_off_script
+                - script.execute: display_off_script
               else:
                 - lambda: |-
                     int current_page_value = id(current_page_id);
@@ -1030,8 +1009,7 @@ switch:
     restore_mode: ALWAYS_ON
     on_turn_on:
       then:
-        - script.execute:
-            id: display_off_script
+        - script.execute: display_off_script
   - name: "Display on/off automatically"
     platform: template
     id: display_on_off_automatically
@@ -1039,8 +1017,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
     on_turn_on:
       then:
-        - script.execute:
-            id: display_off_script
+        - script.execute: display_off_script
         - switch.turn_on: display_on
     on_turn_off:
       then:
@@ -1053,12 +1030,10 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
     on_turn_on:
       then:
-        - script.execute:
-            id: display_off_script
+        - script.execute: display_off_script
     on_turn_off:
       then:
-        - script.execute:
-            id: display_off_script
+        - script.execute: display_off_script
   - name: "Display off while music on"
     platform: template
     id: display_off_on_music_allowed
@@ -1066,12 +1041,10 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
     on_turn_on:
       then:
-        - script.execute:
-            id: display_off_script
+        - script.execute: display_off_script
     on_turn_off:
       then:
-        - script.execute:
-            id: display_off_script
+        - script.execute: display_off_script
   - name: "Alarm enabled"
     platform: template
     id: alarm_enabled
@@ -1080,8 +1053,7 @@ switch:
     entity_category: config
     on_turn_on:
       then:
-        - script.execute:
-            id: set_alarm_last_off
+        - script.execute: set_alarm_last_off
   - name: "Snooze on"
     platform: template
     id: snooze_on
@@ -1105,8 +1077,7 @@ switch:
                   else:
                     - switch.turn_off: snooze_on
     on_turn_off:
-      - script.execute:
-          id: display_off_script
+      - script.execute: display_off_script
       - lambda: |-
           auto call = id(snooze_timestamp).make_call();
           call.set_datetime(id(ntp).now().timestamp);
@@ -1231,7 +1202,9 @@ switch:
                 then:
                   switch.turn_on: alarm_on_local
                 else:
-                  - script.execute: play_url
+                  - script.execute:
+                      id: play_url
+                      from_cache: false
     on_turn_off:
       - script.execute: display_off_script
       - switch.turn_off: alarm_on_local
@@ -1245,8 +1218,7 @@ switch:
                   lambda: 'return (id(time_sync_done) == true);'
                 then:
                   - media_player.stop:
-                  - script.execute:
-                      id: set_alarm_last_off
+                  - script.execute: set_alarm_last_off
                   - script.execute: #set volume back to default
                       id: set_volume
                       volume: !lambda "return id(alarm_volume).state;"
@@ -1280,6 +1252,7 @@ switch:
                   - logger.log: "Wifi is available, currently no playback, enabling playback"
                   - script.execute:
                       id: play_url
+                      from_cache: false
                   - if:
                       condition:
                         switch.is_on: sleep_timer_enabled
@@ -1287,15 +1260,13 @@ switch:
                         - logger.log: "Playback enabled, sleep_timer_enabled is on, enabling sleep_timer_on"
                         - switch.turn_on: sleep_timer_on
     on_turn_off:
-      - script.execute:
-          id: display_off_script
+      - script.execute: display_off_script
       - if:
           condition:
             switch.is_off: alarm_on
           then:
             - media_player.stop:
-            - script.execute:
-                id: set_alarm_last_off
+            - script.execute: set_alarm_last_off
             - script.execute: #set volume back to default
                 id: set_volume
                 volume: !lambda "return id(alarm_volume).state;"
@@ -2429,13 +2400,11 @@ script:
     mode: restart
     then:
       - delay: 5000ms
-      - script.execute:
-          id: reset_page_script_no_timeout
+      - script.execute: reset_page_script_no_timeout
   - id: reset_page_script_no_timeout
     mode: restart
     then:
-      - script.execute:
-          id: display_off_script
+      - script.execute: display_off_script
       - display.page.show: !lambda
           id(rotate_switch_single) = 0;
           id(rotate_switch_double) = 0;
@@ -2748,7 +2717,7 @@ script:
             id(media_player_watchdog_count) = id(media_player_watchdog_count) + 1;
             if (id(media_player_watchdog_count) < 3) {
               ESP_LOGD("media_player_watchdog", "Media player should be playing, trying to play the configured url for count %i", id(media_player_watchdog_count));
-              id(play_url).execute();
+              id(play_url).execute(false);
             }
             else if (id(alarm_on).state) {
               ESP_LOGW("media_player_watchdog", "Failed to start stream, enabling alarm_on_local");
@@ -2783,20 +2752,24 @@ script:
               ESP_LOGD("set_volume", "newVolume %f newVolumeFloat %f", newVolume, newVolumeFloat);
               return newVolumeFloat;
   - id: play_url
+    parameters:
+      from_cache: bool
     then:
       - lambda: |-
-          //const esphome::optional<std::string> url = id(media_player_alarm).make_call().get_media_url();
-          //if (url.has_value()) {
-          //  ESP_LOGD("play_url", "Media has URL");
-          //}
-          //else {
-            ESP_LOGD("play_url", "Media has no URL");
-            auto mediaPlayerCall = id(media_player_alarm).make_call();
-            auto selectState = id(alarm_stream_url).state.c_str();
-            mediaPlayerCall.set_media_url(selectState);
-            mediaPlayerCall.perform();
-            ESP_LOGD("play_url", "Setting stream url %s", selectState);
-          //}
+          ESP_LOGD("play_url", "Media has no URL");
+          auto mediaPlayerCall = id(media_player_alarm).make_call();
+          std::string streamUrl = id(alarm_stream_url).state;
+          if (from_cache) {
+            streamUrl = id(media_url);
+            ESP_LOGD("play_url", "from_cache is true, using cached stream url");
+          }
+          else {
+            id(media_url) = streamUrl; //saving url to cache
+          }
+          mediaPlayerCall.set_media_url(streamUrl.c_str());
+          mediaPlayerCall.perform();
+          ESP_LOGD("play_url", "Setting stream url %s", streamUrl.c_str());
+
           id(media_player_stopped) = 0;
   - id: time_sync_wait #this script calls itself until time is synced. if it was in boot, with delay, this script is all what the device will be doing
     mode: queued
