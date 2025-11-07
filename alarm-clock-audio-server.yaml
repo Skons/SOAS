@@ -4,13 +4,12 @@ external_components:
   - source:
       type: git
       url: https://github.com/Skons/SOAS
-#      ref: dev
+      ref: dev
     components: [simple_audio_server]
 
 # Audio file server component
 simple_audio_server:
   id: audio_server
-  port: 8080
   alarm_file: ${alarm_file}
 
 switch:
@@ -21,7 +20,7 @@ switch:
         - switch.turn_on: display_on
         - media_player.play_media:
             id: media_player_alarm
-            media_url: "http://127.0.0.1:8080/${alarm_file}"
+            media_url: "http://127.0.0.1/sas/${alarm_file}"
         - logger.log: "Local backup alarm activated - playing embedded audio file"
     on_turn_off:
       then:

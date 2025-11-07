@@ -24,10 +24,12 @@
 	* [Top button short press](#Topbuttonshortpress)
 	* [Top button double press](#Topbuttondoublepress)
 	* [Top button triple press](#Topbuttontriplepress)
+  * [Top button long press](#Topbuttonlongpress)
 	* [Time page](#Timepage)
 		* [Rotary single click](#Rotarysingleclick)
 		* [Rotary double click](#Rotarydoubleclick)
 		* [Rotary triple click](#Rotarytripleclick)
+		* [Rotary Hold](#RotaryHold)
 		* [Display](#Display)
 	* [Alarm page](#Alarmpage)
 		* [Rotary single click](#Rotarysingleclick-1)
@@ -48,9 +50,8 @@
 * [Home Assistant SOAS version notification](#HomeAssistantSOASversionnotification)
 * [FAQ](#FAQ)
 	* [SH1107 SPI/I2C](#SH1107SPII2C)
-* [ToDo](#ToDo)
 * [Known issues](#Knownissues)
-* [Changelog](#Changelog)
+* [[Changelog]](#Changelog)
 
 ## <a name='What'></a>What?
 ESPHome with Home Assistant integration?! "No shit, Sherlock". Well yes, all ESPHome has got HA integration, but SOAS has features that enables you to have HA automations based on your alarm time. So automations can be triggered based on the alarm time set on the alarm clock. There are 4 switches that will switch relative to the alarm time, you have the choice to enable the HA switch whether the alarm will sound or not. So the alarm does not have to sound for the HA automation to be triggered.
@@ -70,18 +71,16 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
 * Ability to hide the clock
 * Volume increase of the alarm after a defined time of alarming
   - Start and / or end volume can be configured
-* Ability to switch off display completely
-  - Display is switched on every alarm.
 * Ability to "Display on/off automatically"
-  - Display is switched on when rotary or alarm button input or when alarm fires
-  - Display is switched off after 10 seconds of no rotary or alarm button input.
-    It will not switch off when alarm_on, snooze_on or music_on
+  - Display is switched on when there is interaction or when alarm fires
+  - Display is switched off when there has not been input for 10 seconds
+  - It will not switch off when alarm_on, snooze_on or music_on
 
 
 ### <a name='OptionalFeatures'></a>Optional Features
 * Time sync with GPS for when internet is not available
 * Time backup with DS1307 rtc module internet is not available
-* Local buzzer playback with service and as fallback when internet is not availabl
+* Local buzzer playback with service and as fallback when internet is not available
 * Contrast based on brightness in the room
 * Local file as fallback when internet is not available
   - Integrated in the ESP-IDF framework, but has stability issues
@@ -98,9 +97,9 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
   - [SH1106](https://nl.aliexpress.com/item/1005007253095259.html) (128x64) ~ €2,50
   - [SH1107](https://nl.aliexpress.com/item/1005005313150711.html) (128x128) ~ €6,-
 * MAX98357a amplifier ~ €3,-
-* [3W speaker](https://nl.aliexpress.com/item/32593991938.html) ~ €3,-
+* [3W speaker (AIYIMA 4Ohm 3W)](https://nl.aliexpress.com/item/32593991938.html) ~ €3,-
 * [Rotary button, EC11 W Half 20mm](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
-* A button to be used on top of the clock, the following are supported:
+* A button to be used on top of the clock, the following are supported, also review issue [#42](https://github.com/Skons/SOAS/issues/42):
   - [Flat head button, 16mm](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
   - [Micro tactile switch, 6x6x5](https://nl.aliexpress.com/item/1005004971266223.html) < 0,10 per piece
 
@@ -213,11 +212,11 @@ Edit `alarm_file` to have your own local alarm. You can use mp3, wav or a flac f
 
 ### <a name='Modules'></a>Modules
 
-It is required that you choose the ESP-IDF or the Arduino module, all other modules are optional
+It is required that you choose the ESP-IDF or the Arduino module, all other modules are optional.
 
 #### <a name='ESP-IDFFramework'></a>ESP-IDF Framework
 
-The ESP-IDF framework provides an `media_player` component which allows for playing a local file, which is used when the configured stream does not play. The downside of this framework is that is has more issues playing a stream. Crashes can occur.
+The ESP-IDF framework provides a `media_player` component which allows for playing a local file, which is used when the configured stream does not play. The downside of this framework is that is has more issues playing a stream. Crashes can occur.
 
 Edit the YAML and make sure the `packages` and `esp32` at least contains the code from below.
 
@@ -264,6 +263,8 @@ esp32:
 **Important: There are mixed results for this local alarm to function when wifi has not been connected. Sometimes alarm will sound if wifi has not been connected, but it's safe to assume that it does not work. To be safe, use the RTTTL nowifi module**
 
 Created just for the Arduino framework to have a local file available when internet/wifi is down. This local file is for when internet is not available.
+
+Add `webserver:`to you main yaml file.
 
 Add this to the `substitutions:`
 
@@ -318,9 +319,9 @@ Add `alarm-clock-ds1307.yaml` to the `files:` property of `packages`.
 
 **Important: Only use the `alarm-clock-rtttl.yaml` module only in combination with the Arduino framework module. It overwrites the `alarm_on_local` functionality**
 
-With an added buzzer, you can use this to play nostalgia RTTTL sound (like on older phones or pc system speaker). The main goal is to use it as an fallback when internet is down, or the music stream malfunctions. The esp-idf framework has got local file function, this module does not add any functionality in that case. Instead it overwrites the `alarm_on_local` functionality which removes the local file support.
+With an added buzzer, you can use this to play nostalgia RTTTL sound (like on older phones or pc system speaker). The main goal of this is to use it as a fallback when internet is down, or the music stream malfunctions. The ESP-IDF framework has got local file function, this module does not add any functionality in that case. Instead it overwrites the `alarm_on_local` functionality which removes the local file support.
 
-The choice is between `alarm-clock-rtttl.yaml` or `alarm-clock-rtttl-nowifi.yaml`. Use the first if you do not have local file support (see Audio Server). Use the second if you use local file support. Keep in mind that the RTTTL buzzer will only come in to play when the clock is coming back from power outage, but has not connected with wifi. If the wifi connection has taken place, the Audio Server will function and then the RTTTL buzzer is not needed.
+The choice is between `alarm-clock-rtttl.yaml` or `alarm-clock-rtttl-nowifi.yaml`. Use the first if you do not have local file support (see Audio Server). Use the second if you use local file support, keep in mind that the RTTTL buzzer will only come in to play when the clock is coming back from power outage, but has not connected with wifi. If the wifi connection has taken place, the Audio Server will function and then the RTTTL buzzer is not needed.
 
 | BUZZER | ESP32  |
 |--------|--------|
@@ -406,17 +407,11 @@ Add this to the `substitutions:`
   aab_offset: 0
 ```
 
-You can adjust the above values to you liking.
-I found the above fit my needs (sensor, position in the room, ...) regarding auto-adjust brightness.
-A diagram for `aab_scale` value is here [aab_scale value diagram for GL5516](gl5516_ldr_scale_diagram.jpg)
+You can adjust the above values to you liking. I found the above fit my needs (sensor, position in the room, ...) regarding auto-adjust brightness. A diagram for `aab_scale` value can be found here [aab_scale value diagram for GL5516](gl5516_ldr_scale_diagram.jpg)
 
 Add `alarm-clock-gl5516.yaml` to the `files:` property of `packages`.
 
 ##### Usage
-
-###### Options not available on the alarm itself
-
-* Automatic enable of buzzer after defined period - This enables the buzzer after a period the alarm has been on. Failure detection with the Arduino framework is difficult due to the lack of good error reporting
 
 ###### Test a tune
 
@@ -435,12 +430,10 @@ The rotary button is the button for accessing and editing configuration. When on
 ## <a name='Topbutton'></a>Top button
 
 ### <a name='Topbuttonshortpress'></a>Top button short press
+
 When the alarm, sleep timer and snooze are off, single press will switch the music on. If the sleep timer is enabled, the sleep timer will also switch to on.
 
-If the sleep timer is on and the music is on, the music will be switched off.
-When the alarm, sleep timer and snooze are off, single press will switch the music on. If the sleep timer is enabled, the sleep timer will also switch to on.
-
-If the sleep timer is on and the music is on, the music will be switched off.
+If the music is on, the music will be switched off. If the sleep timer is also on, it will be reset and switched of.
 
 When the alarm is on, snooze will switch on and the alarm will go to off.
 
@@ -448,25 +441,32 @@ When snooze is on, the snooze will be switched off on single press.
 
 ### <a name='Topbuttondoublepress'></a>Top button double press
 
-When the alarm is on, you can switch to music playing. This is usefull when the local alarm kicks in but the music was working fine, this is certainly the case with `alarm_on_local_after_seconds`.
+When the alarm is on, you can switch to music playing. This is usefull when the local alarm kicks in but the music was working fine, this is certainly the case with `alarm_on_local_after_seconds`. If you have the sleep timer enabled, it will also switch on when the music switches on. The sleep timer does not switch on when a remote stream is sent to SOAS, by using the radio browser for instance.
 
 ### <a name='Topbuttontriplepress'></a>Top button triple press
 
 Switch the alarm on, mainly for testing purposes.
 
+### <a name='Topbuttonlongpress'></a>Top button long press
+
+Just play the configured url. When the local alarm is sounding, you can switch to your streaming URL. If the music and alarm are off, you can enable streaming without the sleep timer on, if it is enabled.
+
 ### <a name='Timepage'></a>Time page
 
 #### <a name='Rotarysingleclick'></a>Rotary single click
-Single click of the rotary button toggles the alarm.
+Single click of the rotary button toggles alarm enabled.
 
 #### <a name='Rotarydoubleclick'></a>Rotary double click
 Double click will bring you to the contrast page.
 
 #### <a name='Rotarytripleclick'></a>Rotary triple click
-Triple click will bring you to the reboot page.
+Triple click will bring you to the volume page.
+
+#### <a name='RotaryHold'></a>Rotary Hold
+Holding and releasing the rotary button will bring you to the reboot page.
 
 #### <a name='Display'></a>Display
-Blinking of the alarm icon (most left icon) means that the radio is on. This happens when it is switched on manually or by the time set as alarm. When it is displayed, but not blinking it means the alarm is enabled. If the radio is on. the rotary button does not allow to switch pages but instead it will interact with the volume. If settings must be changed, the radio must be switched off.
+Blinking of the alarm icon (most left icon) means that the music or alarm is on. There is a difference in icons so it's possible to see if the alarm is on, or if the music is playing. This happens when it is switched on manually or by the time set as alarm. When it is displayed, but not blinking it means the alarm is enabled. If the radio is on, the rotary button does not allow to switch pages but instead it will interact with the volume. If settings must be changed, the radio must be switched off.
 
 The second icon is the snooze icon and tells you if snooze is on.
 
@@ -474,14 +474,16 @@ The Home Assistant icon is cut into 4 pieces. Left top is HA 1, right top is HA 
 
 Blinking of the sleep timer icon (second to last icon) means that the sleep timer is on. When it is displayed, but not blinking, the sleep timer is enabled.
 
+The last icon is showing the wifi strength.
+
 The SH1107 display contains more pixel space, therefor the day of the week and date is displayed. The alarm time is also displayed, if snooze is on, then the time when the alarm will sound is displayed.
 
 ### <a name='Alarmpage'></a>Alarm page
 
 #### <a name='Rotarysingleclick-1'></a>Rotary single click
-The alarm can be edited by single clicking the rotary button. This will make the time blink that is in edit mode. Single again and it will bring you to the minute. The last single click allows for editing the time it will take for the local alarm to be on. Keep in mind that you need to have local alarm support on your clock. Turning the rotary button is used to edit the hour, minute or alarm on local after seconds.
+The alarm can be edited by single clicking the rotary button, the time that blinks is the one that is in edit mode. Single again and it will bring you to the minute. The last single click allows for editing the time it will take for the local alarm to be on. Keep in mind that you need to have local alarm support on your clock. Turning the rotary button is used to edit the hour, minute or alarm on local after seconds.
 
-If the SH1106 is used, the alarm on local after seconds is only visible when the edit mode is passed the editing of the minutes. On the sh1107 it all fits on the same page.
+If the SH1106 is used, the alarm on local after seconds is only visible when the edit mode is beyond the editing of the minutes. On the sh1107 it all fits on the same page.
 
 #### <a name='Rotarydoubleclick-1'></a>Rotary double click
 Double click will enable or disable the alarm.
@@ -499,15 +501,15 @@ When the SH1106 is used, the Alarm volume increase and Alarm volume increase dur
 
 ### <a name='HomeAssitantpage123and4'></a>Home Assitant page 1,2,3 and 4
 
-This page displays if the Home Assistant switch is enabled, if the Home Assistant switch is associated with the alarm enabled and it shows the time relative to the alarm time. If the Home Assistant switch is enabled, it will switch to on even if the alarm is disabled.
+This page display the time relative to the alarm time. The icons on the right show if the switch is enabled (top), and it show the alarmed switch (bottom). The first means that it will always triggers relative to the alarm time. If the alarmed switch is on, then the Home Assistant switch will only trigger if the alarm is enabled. If you want the Home Assistant switch to trigger, make sure the alarm time is set correctly. If you only want to enable the alarm when the alarm sound goes of, switch the alarmed switch to on.
 
 #### <a name='Rotarysingleclick-1'></a>Rotary single click
 Single click of the rotary button will enable editing of the relative time, the rotary button can then be used to change the time.
 
 #### <a name='Rotarydoubleclick-1'></a>Rotary double click
-Double click will toggle the Home Assistant enabled switch and alarmed switch. The enabled switch (right top icon) means the HA switch will switch on relative to the alarm time. The alarmed switch (right bottom icon) means that is associated with the alarm being enabled. If HA is enabled, alarmed off, then the HA switch will switched based on the alarm time but the alarm does not have to be enabled. If HA is enabled and alarmed is switched on, then the HA switch will switch on only when the alarm is also enabled.
+Double click will toggle the Home Assistant enabled switch and alarmed switch. The enabled switch (right top icon) means the HA switch will switch on relative to the alarm time. The alarmed switch (right bottom icon) means that the switch is associated with the alarm being enabled. If HA is enabled, alarmed off, then the HA switch will switched based on the alarm time but the alarm does not have to be enabled. If HA is enabled and alarmed is switched on, then the HA switch will switch on only when the alarm is also enabled.
 
-First double click will enable the enabled switch. The second double click will enable both enabled and alarmed switch. The third will disable both switches.
+First double click will enable the enabled switch. The second double click will enable both enabled and alarmed switch. The third will disable both switches. Alarmed can only be enabled if the Home Assistant switch is enabled.
 
 #### <a name='Rotarytripleclick-1'></a>Rotary triple click
 Triple click will switch the Home Assistant switch to on. This way it is possible to trigger your Home Assistant automation anytime you want. Regardless of the enabled and alarmed switched, and regardless of the alarm time.
@@ -515,14 +517,14 @@ Triple click will switch the Home Assistant switch to on. This way it is possibl
 ### <a name='Sleeptimerpage'></a>Sleep timer page
 
 #### <a name='Rotarysingleclick-1'></a>Rotary single click
-With a single click with the rotary button you can define how long the music will play until it goes off.
+With a single click with the rotary button you can define how long the music will play until it will be switched off.
 
 #### <a name='Rotarydoubleclick-1'></a>Rotary double click
 Double click will enable or disable the sleep timer.
 
 ### <a name='Radiopage'></a>Radio page
 
-Enter edit mode with a rotary button single click to select the station that will be used for the radio. Switching to a radio station means the radio will go on.
+Enter edit mode with a rotary button single click to select the station that will be used for the radio. Switching to a radio station means the radio will go on. Selecting the radio station will also switch the radio off.
 
 ### <a name='Volumeandcontrastpages'></a>Volume and contrast pages
 
@@ -538,10 +540,9 @@ A few options are not (yet) available on the alarm self:
 * Snooze duration
 * Display Mode
 * Hide clock
-* Alarm on local after seconds - This will force the local alarm, even if the normal alarm is sounding. Set to 0 to disable this feature.
 * Night mode - This mode is enabled by the sun long lat by default. `Night mode automatically` switched off will not switch the mode without a Home Assistant automation
 
-Use Home Assistant to configure these options.
+Use Home Assistant to configure these options. You can also enable the web server by adding `web_server:` to your yaml. This could have performance impact.
 
 ## <a name='Displaymode'></a>Display mode
 
@@ -552,9 +553,9 @@ There are 3 display modes:
 
 The `Full` means that all is visible. The second indicator `:` will only blink during day time.
 
-The `Minimum night only` will have a smaller font for less light. The wifi icon will not be displayed unless there is no wifi. The second indicator does not blink. This will only be displayed during night time.
+The `Minimum night only` will have a thinner font for less light. The wifi icon will not be displayed unless there is no wifi. The second indicator does not blink. This will only be displayed if the `night mode` switch is on.
 
-`Minimum` is the same as `Minimum night only`, except that it is the mode also during daytime.
+`Minimum` is the same as `Minimum night only`, except that switching `night mode` on or off does not change the display.
 
 ## <a name='HomeAssistantSOASversionnotification'></a>Home Assistant SOAS version notification
 
@@ -598,10 +599,6 @@ automation:
 ### <a name='SH1107SPII2C'></a>SH1107 SPI/I2C
 
 Some SH1107 display modules support both I2C and SPI interface modes (one mode at a time). To switch to IIC mode, follow [this](https://simple-circuit.com/interfacing-arduino-sh1107-oled-display-i2c-mode/) tutorial and review [this](https://github.com/Skons/SOAS/issues/2#issue-3286014273) post.
-
-## <a name='ToDo'></a>ToDo
-
-* Ability to save streamed url to local instead of having a list of streams (https://alshowto.com/home-assistant-and-esphome-how-to-series-1-step-3-make-a-simple-media-speaker/, see things that are quirky)
 
 ## <a name='Knownissues'></a>Known issues
 * The ESP-IDF framework seems to be causing frequent crashes (https://github.com/esphome/esphome/issues/10451)

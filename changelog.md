@@ -1,5 +1,20 @@
 # Changelog
 
+## 2025.11.7.1
+- **BREAKING** With ESPHome 2025.10.0 the audio server needed a rewrite. [#43](https://github.com/Skons/SOAS/issues/43)
+  - The `webserver` component is now required
+  - A minimum of 256KB is required,
+- Improved audio looping
+- Added `boot_done` to know if booting is done
+- `set_schedule_trigger_time_script` checks `boot_done`
+- Documentation improvements, for instance see [#42](https://github.com/Skons/SOAS/issues/42)
+- Volume cannot be changed with the rotary button if automatic volume management is active during alarm
+- Volume will only be changed if there is a change in volume
+- Top button long click will now just play the configured url
+- Dim contrast (brightness) up after boot (not down) PR #39. Thanks @popy24
+- Rework v2 of gl5516 auto brightness PR 40. Thanks @popy24
+- Added documentation to simple audio server
+
 ## 2025.10.4.1
 - Added `alarm_on_local_after_seconds` to the alarm clock settings page
 - Refactored the volume increase on alarm functionality
