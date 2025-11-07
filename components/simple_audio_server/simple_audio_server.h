@@ -16,14 +16,12 @@ class SimpleAudioServerComponent : public AsyncWebHandler, public Component {
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
 
   void set_alarm_file(const std::string& filename);
-  void set_port(uint16_t port) { port_ = port; }
   void set_audio_data(const uint8_t* data, size_t size);
 
  protected:
   friend class SASRequestHandler;
  private:
   std::string alarm_filename_;
-  uint16_t port_{8080};
 
   const uint8_t* audio_data_{nullptr};
   size_t audio_size_{0};

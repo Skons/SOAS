@@ -15,7 +15,6 @@ SimpleAudioServerComponent = simple_audio_server_ns.class_('SimpleAudioServerCom
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(SimpleAudioServerComponent),
-    cv.Optional(CONF_PORT, default=8080): cv.port,
     cv.Required(CONF_ALARM_FILE): cv.string,
 }).extend(cv.COMPONENT_SCHEMA)
 
@@ -23,7 +22,6 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    cg.add(var.set_port(config[CONF_PORT]))
     cg.add(var.set_alarm_file(config[CONF_ALARM_FILE]))
 
     alarm_filename = config[CONF_ALARM_FILE]

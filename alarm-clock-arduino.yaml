@@ -1,6 +1,6 @@
 esphome:
   on_boot:
-    - priority: 600
+    - priority: -250
       then: #clicking workaround
         - wait_until:
             wifi.connected:
@@ -31,3 +31,7 @@ media_player:
       - logger.log: "Playback paused!"
     on_idle:
       - logger.log: "Playback finished!"
+      - lambda: |-
+          if (id(music_on).state || id(alarm_on).state) {
+            id(play_url).execute(true);
+          }

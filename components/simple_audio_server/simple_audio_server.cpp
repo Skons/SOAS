@@ -1,12 +1,8 @@
 #include "simple_audio_server.h"
-#ifdef USE_WEBSERVER_OTA
 
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
 
-#ifdef USE_CAPTIVE_PORTAL
-#include "esphome/components/captive_portal/captive_portal.h"
-#endif
 
 using PlatformString = std::string;
 
@@ -40,15 +36,12 @@ void SASRequestHandler::handleRequest(AsyncWebServerRequest *request) {
     response += "====================================\n";
     response += "Alarm file: " + parent_->alarm_filename_ + "\n";
     response += "Status: " + std::string((parent_->audio_data_ && parent_->audio_size_ > 0) ? "Ready" : "No audio data") + "\n";
-    response += "Stream URL: http://127.0.0.1:" + to_string(parent_->port_) + "/" + parent_->alarm_filename_ + "\n";
+    response += "Stream URL: http://127.0.0.1/sas/" + parent_->alarm_filename_ + "\n";
     response += "\nFor SOAS alarm configuration:\n";
     response += "Add this URL to your alarm_stream_url options in YAML\n";
 
-    if (parent_->audio_data_ && parent_->audio_size_ > 0) {
-      response += "\nEmbedded Audio Info:\n";
-      response += "Size: " + to_string(parent_->audio_size_) + " bytes\n";
-      response += "Looping: " + std::string(parent_->audio_size_ < 500000 ? "YES (infinite)" : "NO (single play)") + "\n";
-    }
+    response += "\nEmbedded Audio Info:\n";
+    response += "Size: " + to_string(parent_->audio_size_) + " bytes\n";
 
     response += "\nRequest details:\n";
     response += "Host: " + request->host() + "\n";
@@ -145,5 +138,3 @@ void SimpleAudioServerComponent::dump_config() { ESP_LOGCONFIG(TAG, "Simple audi
 
 }  // namespace web_server
 }  // namespace esphome
-
-#endif  // USE_WEBSERVER_OTA

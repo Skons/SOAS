@@ -99,7 +99,7 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
 * MAX98357a amplifier ~ €3,-
 * [3W speaker (AIYIMA 4Ohm 3W)](https://nl.aliexpress.com/item/32593991938.html) ~ €3,-
 * [Rotary button, EC11 W Half 20mm](https://nl.aliexpress.com/item/1005001877184897.html) < €1,-
-* A button to be used on top of the clock, the following are supported:
+* A button to be used on top of the clock, the following are supported, also review issue [#42](https://github.com/Skons/SOAS/issues/42):
   - [Flat head button, 16mm](https://nl.aliexpress.com/item/1005003400929705.html) ~ €1,50
   - [Micro tactile switch, 6x6x5](https://nl.aliexpress.com/item/1005004971266223.html) < 0,10 per piece
 
