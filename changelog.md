@@ -1,5 +1,11 @@
 # Changelog
 
+##
+- Added `display_on_off_nigthmode`
+- Improved feedback on all pages
+- Added `codec_support_enabled` for the esp-idf framework [#47](https://github.com/Skons/SOAS/issues/47)
+- Documentation updates
+
 ## 2025.11.7.1
 - **BREAKING** With ESPHome 2025.10.0 the audio server needed a rewrite. [#43](https://github.com/Skons/SOAS/issues/43)
   - The `webserver` component is now required

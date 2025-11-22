@@ -21,6 +21,7 @@ media_player:
   - id: media_player_alarm
     platform: speaker
     name: Media player alarm
+    codec_support_enabled: true
     media_pipeline:
         speaker: media_spk_resampling_input
         num_channels: 1

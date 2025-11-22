@@ -63,7 +63,7 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
 * Alarm based on time.
 * Different display modes so there is more or less light emitted by the clock.
 * Contrast based on day or night with smooth dimming
-* 4 Home Assistant integrated switches that switch based on the alarm time, alarm does not have to sound. These switches can be switched manually on the clock itself.
+* 4 Home Assistant integrated switches that switch based on the alarm time, alarm does not have to sound. These switches can be switched manually on the clock itself. When they are switched on they will be switched off automatically after 1 minute.
 * Customizable sleep timer.
 * Customizable snooze timer.
 * Online radio streams.
@@ -71,10 +71,12 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
 * Ability to hide the clock
 * Volume increase of the alarm after a defined time of alarming
   - Start and / or end volume can be configured
-* Ability to "Display on/off automatically"
+  - The time until the next defined increase can be configured
+* Ability to `Display on/off automatically` (not available on the clock itself)
   - Display is switched on when there is interaction or when alarm fires
   - Display is switched off when there has not been input for 10 seconds
-  - It will not switch off when alarm_on, snooze_on or music_on
+  - It will not switch off when alarm_on, snooze_on or music_on. Unless `Display off while snooze on` and/or `Display off while snooze on` are switched off.
+  - `Display on/off nightmode` will switch `Display on/off automatically` synchronously with the `Night Mode` switch. When `Night mode automatically` is switched on, all will go automatically.
 
 
 ### <a name='OptionalFeatures'></a>Optional Features

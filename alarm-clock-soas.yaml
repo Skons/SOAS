@@ -453,7 +453,7 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.11.7.1"};
+    lambda: return {"2025.11.22.1"};
     update_interval: never
 
   # - name: "Debug logger"
@@ -1045,6 +1045,11 @@ switch:
     on_turn_off:
       then:
         - script.execute: display_off_script
+  - name: "Display on/off nightmode"
+    platform: template
+    id: display_on_off_nigthmode
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
   - name: "Alarm enabled"
     platform: template
     id: alarm_enabled
@@ -1326,6 +1331,24 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
+    on_turn_on:
+      then:
+        - if:
+            condition:
+              and:
+                - switch.is_on: display_on_off_nigthmode
+                - switch.is_off: display_on_off_automatically
+            then:
+              switch.turn_on: display_on_off_automatically
+    on_turn_off:
+      then:
+        - if:
+            condition:
+              and:
+                - switch.is_on: display_on_off_nigthmode
+                - switch.is_on: display_on_off_automatically
+            then:
+              switch.turn_off: display_on_off_automatically
   - name: "Night mode automatically"
     platform: template
     id: night_mode_automatically
@@ -1341,7 +1364,7 @@ display:
     address: 0x3C
     rotation: ${display_rotation}
     contrast: 1
-    update_interval: 500ms
+    update_interval: 250ms
     pages:
       - id: page1 #clock page
         lambda: |-
@@ -1557,8 +1580,15 @@ display:
           id(current_page_id) = 1;
       - id: page2 #Alarm clock setting page
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int usec = tv.tv_usec;
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            //std::string s = to_string(tv.tv_usec);
+            //first_digit = s.front() - '0';
+            shouldBlink = 1;
+          }
 
           int calculated_width;
           int calculated_height;
@@ -1623,8 +1653,15 @@ display:
           id(current_page_id) = 2;
       - id: page3 #alarm volume page
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int usec = tv.tv_usec;
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            //std::string s = to_string(tv.tv_usec);
+            //first_digit = s.front() - '0';
+            shouldBlink = 1;
+          }
           int rotate_switch_single_value = id(rotate_switch_single);
           std::string language = "${language}";
 
@@ -1720,8 +1757,15 @@ display:
       - id: page4 #HA 1 page
         lambda: |-
           //https://gist.github.com/alvesvaren/767d9585f0ecbef18ef1c7c0492c4332
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int usec = tv.tv_usec;
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            //std::string s = to_string(tv.tv_usec);
+            //first_digit = s.front() - '0';
+            shouldBlink = 1;
+          }
           int ha_value = id(ha_1_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1783,8 +1827,15 @@ display:
           id(current_page_id) = 4;
       - id: page5 #HA 2 page
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int usec = tv.tv_usec;
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            //std::string s = to_string(tv.tv_usec);
+            //first_digit = s.front() - '0';
+            shouldBlink = 1;
+          }
           int ha_value = id(ha_2_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1846,8 +1897,15 @@ display:
           id(current_page_id) = 5;
       - id: page6 #HA 3 page
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int usec = tv.tv_usec;
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            //std::string s = to_string(tv.tv_usec);
+            //first_digit = s.front() - '0';
+            shouldBlink = 1;
+          }
           int ha_value = id(ha_3_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1909,8 +1967,15 @@ display:
           id(current_page_id) = 6;
       - id: page7 #HA 4 page
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int usec = tv.tv_usec;
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            //std::string s = to_string(tv.tv_usec);
+            //first_digit = s.front() - '0';
+            shouldBlink = 1;
+          }
           int ha_value = id(ha_4_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1972,8 +2037,15 @@ display:
           id(current_page_id) = 7;
       - id: page8 #Sleep timer
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int usec = tv.tv_usec;
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            //std::string s = to_string(tv.tv_usec);
+            //first_digit = s.front() - '0';
+            shouldBlink = 1;
+          }
           int sleep_timer_duration_value = id(sleep_timer_duration).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1993,8 +2065,15 @@ display:
           id(current_page_id) = 8;
       - id: page9 #Radio selector
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int usec = tv.tv_usec;
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            //std::string s = to_string(tv.tv_usec);
+            //first_digit = s.front() - '0';
+            shouldBlink = 1;
+          }
 
           int rotate_switch_single_value = id(rotate_switch_single);
 
