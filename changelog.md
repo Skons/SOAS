@@ -2,8 +2,12 @@
 
 ##
 - Added `display_on_off_nigthmode`
-- Improved feedback on all pages
 - Added `codec_support_enabled` for the esp-idf framework [#47](https://github.com/Skons/SOAS/issues/47)
+- Improved feedback on all pages
+  - Faster display refresh
+  - Faster blinking when in edit mode
+  - Rotary button is now a single script with single execution mode
+  - Small timeout with rotary button when screen switches on
 - Documentation updates
 
 ## 2025.11.7.1
