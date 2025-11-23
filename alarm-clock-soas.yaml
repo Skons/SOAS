@@ -1500,11 +1500,8 @@ display:
         lambda: |-
           struct timeval tv;
           gettimeofday(&tv, NULL);
-          int usec = tv.tv_usec;
           int shouldBlink = 0;
           if (tv.tv_usec >= 500000) { //every 0.5 second
-            //std::string s = to_string(tv.tv_usec);
-            //first_digit = s.front() - '0';
             shouldBlink = 1;
           }
 
@@ -1573,11 +1570,8 @@ display:
         lambda: |-
           struct timeval tv;
           gettimeofday(&tv, NULL);
-          int usec = tv.tv_usec;
           int shouldBlink = 0;
           if (tv.tv_usec >= 500000) { //every 0.5 second
-            //std::string s = to_string(tv.tv_usec);
-            //first_digit = s.front() - '0';
             shouldBlink = 1;
           }
           int rotate_switch_single_value = id(rotate_switch_single);
@@ -1677,11 +1671,8 @@ display:
           //https://gist.github.com/alvesvaren/767d9585f0ecbef18ef1c7c0492c4332
           struct timeval tv;
           gettimeofday(&tv, NULL);
-          int usec = tv.tv_usec;
           int shouldBlink = 0;
           if (tv.tv_usec >= 500000) { //every 0.5 second
-            //std::string s = to_string(tv.tv_usec);
-            //first_digit = s.front() - '0';
             shouldBlink = 1;
           }
           int ha_value = id(ha_1_pre_minute).state;
@@ -1747,11 +1738,8 @@ display:
         lambda: |-
           struct timeval tv;
           gettimeofday(&tv, NULL);
-          int usec = tv.tv_usec;
           int shouldBlink = 0;
           if (tv.tv_usec >= 500000) { //every 0.5 second
-            //std::string s = to_string(tv.tv_usec);
-            //first_digit = s.front() - '0';
             shouldBlink = 1;
           }
           int ha_value = id(ha_2_pre_minute).state;
@@ -1817,11 +1805,8 @@ display:
         lambda: |-
           struct timeval tv;
           gettimeofday(&tv, NULL);
-          int usec = tv.tv_usec;
           int shouldBlink = 0;
           if (tv.tv_usec >= 500000) { //every 0.5 second
-            //std::string s = to_string(tv.tv_usec);
-            //first_digit = s.front() - '0';
             shouldBlink = 1;
           }
           int ha_value = id(ha_3_pre_minute).state;
@@ -1887,11 +1872,8 @@ display:
         lambda: |-
           struct timeval tv;
           gettimeofday(&tv, NULL);
-          int usec = tv.tv_usec;
           int shouldBlink = 0;
           if (tv.tv_usec >= 500000) { //every 0.5 second
-            //std::string s = to_string(tv.tv_usec);
-            //first_digit = s.front() - '0';
             shouldBlink = 1;
           }
           int ha_value = id(ha_4_pre_minute).state;
@@ -1957,11 +1939,8 @@ display:
         lambda: |-
           struct timeval tv;
           gettimeofday(&tv, NULL);
-          int usec = tv.tv_usec;
           int shouldBlink = 0;
           if (tv.tv_usec >= 500000) { //every 0.5 second
-            //std::string s = to_string(tv.tv_usec);
-            //first_digit = s.front() - '0';
             shouldBlink = 1;
           }
           int sleep_timer_duration_value = id(sleep_timer_duration).state;
@@ -1985,11 +1964,8 @@ display:
         lambda: |-
           struct timeval tv;
           gettimeofday(&tv, NULL);
-          int usec = tv.tv_usec;
           int shouldBlink = 0;
           if (tv.tv_usec >= 500000) { //every 0.5 second
-            //std::string s = to_string(tv.tv_usec);
-            //first_digit = s.front() - '0';
             shouldBlink = 1;
           }
 
