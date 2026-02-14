@@ -453,7 +453,7 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.11.23.1"};
+    lambda: return {"2026.2.14.1"};
     update_interval: never
 
   # - name: "Debug logger"
@@ -928,7 +928,7 @@ switch:
     on_turn_on:
       then:
         - script.execute: display_off_script
-  - name: "Display on/off automatically"
+  - name: "Display off automatically"
     platform: template
     id: display_on_off_automatically
     optimistic: true
@@ -963,7 +963,7 @@ switch:
     on_turn_off:
       then:
         - script.execute: display_off_script
-  - name: "Display on/off nightmode"
+  - name: "Display off nightmode"
     platform: template
     id: display_on_off_nigthmode
     optimistic: true
@@ -1141,10 +1141,13 @@ switch:
                   lambda: 'return (id(time_sync_done) == true);'
                 then:
                   - media_player.stop:
+                  - media_player.stop:
+                      announcement: true
                   - script.execute: set_alarm_last_off
                   - script.execute: #set volume back to default
                       id: set_volume
                       volume: !lambda "return id(alarm_volume).state;"
+                      wait: true
   - name: "Alarm on local"
     platform: template
     id: alarm_on_local
@@ -1189,10 +1192,13 @@ switch:
             switch.is_off: alarm_on
           then:
             - media_player.stop:
+            - media_player.stop:
+                announcement: true
             - script.execute: set_alarm_last_off
             - script.execute: #set volume back to default
                 id: set_volume
                 volume: !lambda "return id(alarm_volume).state;"
+                wait: true
             - if:
                 condition:
                   switch.is_on: sleep_timer_on
@@ -2760,11 +2766,15 @@ script:
   - id: set_volume
     parameters:
       volume: int
+      wait: bool
     then:
       if:
         condition:
-          - lambda: "return (id(current_volume) != volume);"
+          and:
+            - lambda: "return (id(current_volume) != volume);"
         then:
+          - wait_until:
+              lambda: 'return (wait == false || (wait == true && id(media_player_alarm).state != 2));'
           - media_player.volume_set: !lambda
               float newVolume = float(volume);
               float newVolumeFloat = (newVolume/100);
@@ -2777,7 +2787,7 @@ script:
     then:
       - lambda: |-
           auto mediaPlayerCall = id(media_player_alarm).make_call();
-          std::string streamUrl = id(alarm_stream_url).state;
+          std::string streamUrl = id(alarm_stream_url).current_option();
           if (from_cache) {
             streamUrl = id(media_url);
             ESP_LOGD("play_url", "from_cache is true, using cached stream url");
@@ -2869,7 +2879,7 @@ script:
 
                       if (id(current_volume) != newVolume) {
                         //ESP_LOGD("alarm_volume_manager", "update volume with %i", newVolume);
-                        id(set_volume).execute(newVolume);
+                        id(set_volume).execute(newVolume, false);
                       }
                     }
                   }
