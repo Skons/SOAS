@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026.2.14.1
+- Added `display_on_off_nigthmode`
+- Added `codec_support_enabled` for the esp-idf framework [#47](https://github.com/Skons/SOAS/issues/47)
+- When `media_player.stop` is used, announcements will be stopped also
+- `set_volume` can now wait until the media player is stopped
+- Renamed `Display on/off automatically` and `Display on/off nightmode`. The `/` is not supported in future versions of esphome
+- Improved feedback on all pages
+  - Faster display refresh
+  - Faster blinking when in edit mode
+  - Rotary button is now a single script with single execution mode
+  - Small timeout with rotary button when screen switches on
+- Documentation updates
+
 ## 2025.11.7.1
 - **BREAKING** With ESPHome 2025.10.0 the audio server needed a rewrite. [#43](https://github.com/Skons/SOAS/issues/43)
   - The `webserver` component is now required

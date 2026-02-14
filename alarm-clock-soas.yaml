@@ -453,7 +453,7 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2025.11.7.1"};
+    lambda: return {"2026.2.14.1"};
     update_interval: never
 
   # - name: "Debug logger"
@@ -557,96 +557,14 @@ sensor:
       mode: INPUT_PULLUP
     on_anticlockwise:
       then:
-        - if:
-            condition:
-              and:
-                - switch.is_on: display_on_off_automatically
-                - switch.is_off: display_on
-            then:
-              - switch.turn_on: display_on
-              - script.execute: display_off_script
-            else:
-              - if:
-                  condition:
-                    lambda: |-
-                      if (id(current_page_id) == 1 && (id(alarm_on).state || id(music_on).state)) {
-                        ESP_LOGD("rotary_encoder", "alarm or music is on, show volume");
-                        return true;
-                      }
-                      return false;
-                  then:
-                    - display.page.show: page12
-                    - script.execute: reset_page_script
-                  else: #browse all pages
-                    - if:
-                        condition:
-                          lambda: |-
-                            if (id(rotate_switch_single) == 0 && id(rotate_switch_double) == 0 && id(current_page_id) < 10) {
-                              ESP_LOGD("rotary_encoder", "anticlockwise");
-                              return true;
-                            }
-                            return false;
-                        then:
-                          - if: #dont show special pages
-                              condition:
-                                display.is_displaying_page:
-                                  id: alarmdisplay
-                                  page_id: page1
-                              then:
-                                - display.page.show: page9
-                              else:
-                                - display.page.show_previous: alarmdisplay
-                          - script.execute: reset_page_script
-                        else: #edit items on page
-                          - script.execute:
-                              id: rotary_encoder_script
-                              clockwise: false
+        - script.execute:
+            id: rotary_encoder_script
+            clockwise: false
     on_clockwise:
       then:
-        - if:
-            condition:
-              and:
-                - switch.is_on: display_on_off_automatically
-                - switch.is_off: display_on
-            then:
-              - switch.turn_on: display_on
-              - script.execute: display_off_script
-            else:
-              - if:
-                  condition:
-                    lambda: |-
-                      if (id(current_page_id) == 1 && (id(alarm_on).state || id(music_on).state)) {
-                        ESP_LOGD("rotary_encoder", "alarm or music is on, show volume");
-                        return true;
-                      }
-                      return false;
-                  then:
-                    - display.page.show: page12
-                    - script.execute: reset_page_script
-                  else: #browse all pages
-                    - if:
-                        condition:
-                          lambda: |-
-                            if (id(rotate_switch_single) == 0 && id(rotate_switch_double) == 0 && id(current_page_id) < 10) {
-                              ESP_LOGD("rotary_encoder", "clockwise");
-                              return true;
-                            }
-                            return false;
-                        then:
-                          - if: #dont show special pages
-                              condition:
-                                display.is_displaying_page:
-                                  id: alarmdisplay
-                                  page_id: page9
-                              then:
-                                - display.page.show: page1
-                              else:
-                                - display.page.show_next: alarmdisplay
-                          - script.execute: reset_page_script
-                        else: #edit items on page
-                          - script.execute:
-                              id: rotary_encoder_script
-                              clockwise: true
+        - script.execute:
+            id: rotary_encoder_script
+            clockwise: true
   - platform: uptime
     id: soas_uptime
     type: seconds
@@ -1010,7 +928,7 @@ switch:
     on_turn_on:
       then:
         - script.execute: display_off_script
-  - name: "Display on/off automatically"
+  - name: "Display off automatically"
     platform: template
     id: display_on_off_automatically
     optimistic: true
@@ -1045,6 +963,11 @@ switch:
     on_turn_off:
       then:
         - script.execute: display_off_script
+  - name: "Display off nightmode"
+    platform: template
+    id: display_on_off_nigthmode
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
   - name: "Alarm enabled"
     platform: template
     id: alarm_enabled
@@ -1218,10 +1141,13 @@ switch:
                   lambda: 'return (id(time_sync_done) == true);'
                 then:
                   - media_player.stop:
+                  - media_player.stop:
+                      announcement: true
                   - script.execute: set_alarm_last_off
                   - script.execute: #set volume back to default
                       id: set_volume
                       volume: !lambda "return id(alarm_volume).state;"
+                      wait: true
   - name: "Alarm on local"
     platform: template
     id: alarm_on_local
@@ -1266,10 +1192,13 @@ switch:
             switch.is_off: alarm_on
           then:
             - media_player.stop:
+            - media_player.stop:
+                announcement: true
             - script.execute: set_alarm_last_off
             - script.execute: #set volume back to default
                 id: set_volume
                 volume: !lambda "return id(alarm_volume).state;"
+                wait: true
             - if:
                 condition:
                   switch.is_on: sleep_timer_on
@@ -1326,6 +1255,24 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
+    on_turn_on:
+      then:
+        - if:
+            condition:
+              and:
+                - switch.is_on: display_on_off_nigthmode
+                - switch.is_off: display_on_off_automatically
+            then:
+              switch.turn_on: display_on_off_automatically
+    on_turn_off:
+      then:
+        - if:
+            condition:
+              and:
+                - switch.is_on: display_on_off_nigthmode
+                - switch.is_on: display_on_off_automatically
+            then:
+              switch.turn_off: display_on_off_automatically
   - name: "Night mode automatically"
     platform: template
     id: night_mode_automatically
@@ -1341,7 +1288,7 @@ display:
     address: 0x3C
     rotation: ${display_rotation}
     contrast: 1
-    update_interval: 500ms
+    update_interval: 250ms
     pages:
       - id: page1 #clock page
         lambda: |-
@@ -1557,8 +1504,12 @@ display:
           id(current_page_id) = 1;
       - id: page2 #Alarm clock setting page
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            shouldBlink = 1;
+          }
 
           int calculated_width;
           int calculated_height;
@@ -1623,8 +1574,12 @@ display:
           id(current_page_id) = 2;
       - id: page3 #alarm volume page
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            shouldBlink = 1;
+          }
           int rotate_switch_single_value = id(rotate_switch_single);
           std::string language = "${language}";
 
@@ -1720,8 +1675,12 @@ display:
       - id: page4 #HA 1 page
         lambda: |-
           //https://gist.github.com/alvesvaren/767d9585f0ecbef18ef1c7c0492c4332
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            shouldBlink = 1;
+          }
           int ha_value = id(ha_1_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1783,8 +1742,12 @@ display:
           id(current_page_id) = 4;
       - id: page5 #HA 2 page
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            shouldBlink = 1;
+          }
           int ha_value = id(ha_2_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1846,8 +1809,12 @@ display:
           id(current_page_id) = 5;
       - id: page6 #HA 3 page
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            shouldBlink = 1;
+          }
           int ha_value = id(ha_3_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1909,8 +1876,12 @@ display:
           id(current_page_id) = 6;
       - id: page7 #HA 4 page
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            shouldBlink = 1;
+          }
           int ha_value = id(ha_4_pre_minute).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1972,8 +1943,12 @@ display:
           id(current_page_id) = 7;
       - id: page8 #Sleep timer
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            shouldBlink = 1;
+          }
           int sleep_timer_duration_value = id(sleep_timer_duration).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -1993,8 +1968,12 @@ display:
           id(current_page_id) = 8;
       - id: page9 #Radio selector
         lambda: |-
-          auto time = id(ntp).now();
-          int shouldBlink = time.second % 2;
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
+          int shouldBlink = 0;
+          if (tv.tv_usec >= 500000) { //every 0.5 second
+            shouldBlink = 1;
+          }
 
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -2068,334 +2047,381 @@ display:
 
 script:
   - id: rotary_encoder_script
-    mode: queued
+    mode: single
     parameters:
       clockwise: bool
     then:
-      - lambda: |-
-          std::string rotation = "on_clockwise";
-          if (clockwise == false) {
-            rotation = "on_anticlockwise";
-          }
+        - if:
+            condition:
+              and:
+                - switch.is_on: display_on_off_automatically
+                - switch.is_off: display_on
+            then:
+              - logger.log: "Display is off, turning it on"
+              - switch.turn_on: display_on
+              - script.execute: display_off_script
+              - delay: 500ms #wait for the display to turn on
+            else:
+              - if:
+                  condition:
+                    lambda: |-
+                      if (id(current_page_id) == 1 && (id(alarm_on).state || id(music_on).state)) {
+                        ESP_LOGD("rotary_encoder", "alarm or music is on, show volume");
+                        return true;
+                      }
+                      return false;
+                  then: #show volume page
+                    - display.page.show: page12
+                    - script.execute: reset_page_script
+                  else:
+                    - if:
+                        condition:
+                          lambda: |-
+                            if (id(rotate_switch_single) == 0 && id(rotate_switch_double) == 0 && id(current_page_id) < 10) {
+                              ESP_LOGD("rotary_encoder", "Browsing pages, rotation is clockwise %d", clockwise);
+                              return true;
+                            }
+                            return false;
+                        then: #browse all pages
+                          - lambda: |-
+                              if (clockwise == false && id(alarmdisplay).get_active_page() == id(page1)) { //rotate back to the last page
+                                id(alarmdisplay).show_page(id(page9));
+                              }
+                              else if (clockwise == true && id(alarmdisplay).get_active_page() == id(page9)) { //rotate to the first page
+                                id(alarmdisplay).show_page(id(page1));
+                              }
+                              else if (clockwise) { //go to the next page
+                                id(alarmdisplay).show_next_page();
+                              }
+                              else { //go to the previous page
+                                id(alarmdisplay).show_prev_page();
+                              }
+                              id(reset_page_script).execute();
+                        else: #edit items on current page
+                          - lambda: |-
+                              std::string rotation = "on_clockwise";
+                              if (clockwise == false) {
+                                rotation = "on_anticlockwise";
+                              }
 
-          int current_page_id_value = id(current_page_id);
-          int rotate_switch_single_value = id(rotate_switch_single);
-          int rotate_switch_double_value = id(rotate_switch_double);
+                              int current_page_id_value = id(current_page_id);
+                              int rotate_switch_single_value = id(rotate_switch_single);
+                              int rotate_switch_double_value = id(rotate_switch_double);
 
-          //ESP_LOGD("rotary_encoder_script", "Current page id %i", current_page_id_value);
+                              //ESP_LOGD("rotary_encoder_script", "Current page id %i", current_page_id_value);
 
-          if (current_page_id_value == 2) { //alarm clock page
-            if (rotate_switch_single_value == 1) { //update hours
-              int alarmHour = id(alarm_hour).state;
-              if (clockwise == true) {
-                alarmHour += 1;
-                if (alarmHour > 23) {
-                  alarmHour = 0;
-                }
-              }
-              else {
-                alarmHour -= 1;
-                if (alarmHour < 0) {
-                  alarmHour = 23;
-                }
-              }
-              auto call = id(alarm_hour).make_call();
-              call.set_value(alarmHour);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_hour to %i", rotation.c_str(), alarmHour);
-            }
-            else if (rotate_switch_single_value == 2) { //update minute
-              int alarmMinute = id(alarm_minute).state;
-              if (clockwise == true) {
-                alarmMinute += 1;
-                if (alarmMinute > 59) {
-                  alarmMinute = 0;
-                }
-              }
-              else {
-                alarmMinute -= 1;
-                if (alarmMinute < 0) {
-                  alarmMinute = 59;
-                }
-              }
-              auto call = id(alarm_minute).make_call();
-              call.set_value(alarmMinute);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_minute to %i", rotation.c_str(), alarmMinute);
-            }
-            else if (rotate_switch_single_value == 3) { //update alarm_on_local_after_seconds
-              int alarmOnLocalAfterSeconds = id(alarm_on_local_after_seconds).state;
-              if (clockwise == true) {
-                alarmOnLocalAfterSeconds += 30;
-                if (alarmOnLocalAfterSeconds > 300) {
-                  alarmOnLocalAfterSeconds = 0;
-                }
-              }
-              else {
-                alarmOnLocalAfterSeconds -= 30;
-                if (alarmOnLocalAfterSeconds < 0) {
-                  alarmOnLocalAfterSeconds = 300;
-                }
-              }
-              auto call = id(alarm_on_local_after_seconds).make_call();
-              call.set_value(alarmOnLocalAfterSeconds);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_on_local_after_seconds to %i", rotation.c_str(), alarm_on_local_after_seconds);
-            }
-          }
-          else if (current_page_id_value == 3) { //update alarm volume
-            ESP_LOGD("rotary_encoder_script", "rotate_switch_single_value %i", rotate_switch_single_value);
-            if (rotate_switch_single_value == 1) { //update alarm_volume_increase
-              int alarmVolumeIncrease = id(alarm_volume_increase).state;
-              if (clockwise == true) {
-                alarmVolumeIncrease += 1;
-                if (alarmVolumeIncrease > 100) {
-                  alarmVolumeIncrease = 100;
-                }
-              }
-              else {
-                alarmVolumeIncrease -= 1;
-                if (alarmVolumeIncrease < 0) {
-                  alarmVolumeIncrease = 0;
-                }
-              }
-              auto call = id(alarm_volume_increase).make_call();
-              call.set_value(alarmVolumeIncrease);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase to %i", rotation.c_str(), alarmVolumeIncrease);
-            }
-            else if (rotate_switch_single_value == 2) { //update alarm_volume_increase_duration
-              int alarmVolumeIncreaseDuration = id(alarm_volume_increase_duration).state;
-              if (clockwise == true) {
-                alarmVolumeIncreaseDuration += 1;
-                if (alarmVolumeIncreaseDuration > 300) {
-                  alarmVolumeIncreaseDuration = 0;
-                }
-              }
-              else {
-                alarmVolumeIncreaseDuration -= 1;
-                if (alarmVolumeIncreaseDuration < 0) {
-                  alarmVolumeIncreaseDuration = 300;
-                }
-              }
-              auto call = id(alarm_volume_increase_duration).make_call();
-              call.set_value(alarmVolumeIncreaseDuration);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_duration to %i", rotation.c_str(), alarmVolumeIncreaseDuration);
-            }
-            else if (rotate_switch_single_value == 3) { //update alarm_volume_increase_start
-              int alarmVolumeIncreaseStart = id(alarm_volume_increase_start).state;
-              if (clockwise == true) {
-                alarmVolumeIncreaseStart += 1;
-                if (alarmVolumeIncreaseStart > 100) {
-                  alarmVolumeIncreaseStart = 100;
-                }
-              }
-              else {
-                alarmVolumeIncreaseStart -= 1;
-                if (alarmVolumeIncreaseStart < 0) {
-                  alarmVolumeIncreaseStart = 0;
-                }
-              }
-              auto call = id(alarm_volume_increase_start).make_call();
-              call.set_value(alarmVolumeIncreaseStart);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_start to %i", rotation.c_str(), alarmVolumeIncreaseStart);
-            }
-            else if (rotate_switch_single_value == 4) { //update alarm_volume_increase_end
-              int alarmVolumeIncreaseEnd = id(alarm_volume_increase_end).state;
-              if (clockwise == true) {
-                alarmVolumeIncreaseEnd += 1;
-                if (alarmVolumeIncreaseEnd > 100) {
-                  alarmVolumeIncreaseEnd = 100;
-                }
-              }
-              else {
-                alarmVolumeIncreaseEnd -= 1;
-                if (alarmVolumeIncreaseEnd < 0) {
-                  alarmVolumeIncreaseEnd = 0;
-                }
-              }
-              auto call = id(alarm_volume_increase_end).make_call();
-              call.set_value(alarmVolumeIncreaseEnd);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_end to %i", rotation.c_str(), alarmVolumeIncreaseEnd);
-            }
-          }
-          else if (current_page_id_value > 3 && current_page_id_value < 8) { //ha pages
-            int ha_value = 0;
-            if (current_page_id_value == 4) {
-              ha_value = id(ha_1_pre_minute).state;
-            }
-            else if (current_page_id_value == 5) {
-              ha_value = id(ha_2_pre_minute).state;
-            }
-            else if (current_page_id_value == 6) {
-              ha_value = id(ha_3_pre_minute).state;
-            }
-            else if (current_page_id_value == 7) {
-              ha_value = id(ha_4_pre_minute).state;
-            }
-            if (rotate_switch_single_value == 1) { //update ha minutes
-              if (clockwise) {
-                ha_value += 1;
-                if (ha_value > 99) {
-                  ha_value = -99;
-                }
-              }
-              else {
-                ha_value -= 1;
-                if (ha_value < -99) {
-                  ha_value = 99;
-                }
-              }
+                              if (current_page_id_value == 2) { //alarm clock page
+                                if (rotate_switch_single_value == 1) { //update hours
+                                  int alarmHour = id(alarm_hour).state;
+                                  if (clockwise == true) {
+                                    alarmHour += 1;
+                                    if (alarmHour > 23) {
+                                      alarmHour = 0;
+                                    }
+                                  }
+                                  else {
+                                    alarmHour -= 1;
+                                    if (alarmHour < 0) {
+                                      alarmHour = 23;
+                                    }
+                                  }
+                                  auto call = id(alarm_hour).make_call();
+                                  call.set_value(alarmHour);
+                                  call.perform();
+                                  ESP_LOGD("rotary_encoder_script", "%s setting alarm_hour to %i", rotation.c_str(), alarmHour);
+                                }
+                                else if (rotate_switch_single_value == 2) { //update minute
+                                  int alarmMinute = id(alarm_minute).state;
+                                  if (clockwise == true) {
+                                    alarmMinute += 1;
+                                    if (alarmMinute > 59) {
+                                      alarmMinute = 0;
+                                    }
+                                  }
+                                  else {
+                                    alarmMinute -= 1;
+                                    if (alarmMinute < 0) {
+                                      alarmMinute = 59;
+                                    }
+                                  }
+                                  auto call = id(alarm_minute).make_call();
+                                  call.set_value(alarmMinute);
+                                  call.perform();
+                                  ESP_LOGD("rotary_encoder_script", "%s setting alarm_minute to %i", rotation.c_str(), alarmMinute);
+                                }
+                                else if (rotate_switch_single_value == 3) { //update alarm_on_local_after_seconds
+                                  int alarmOnLocalAfterSeconds = id(alarm_on_local_after_seconds).state;
+                                  if (clockwise == true) {
+                                    alarmOnLocalAfterSeconds += 30;
+                                    if (alarmOnLocalAfterSeconds > 300) {
+                                      alarmOnLocalAfterSeconds = 0;
+                                    }
+                                  }
+                                  else {
+                                    alarmOnLocalAfterSeconds -= 30;
+                                    if (alarmOnLocalAfterSeconds < 0) {
+                                      alarmOnLocalAfterSeconds = 300;
+                                    }
+                                  }
+                                  auto call = id(alarm_on_local_after_seconds).make_call();
+                                  call.set_value(alarmOnLocalAfterSeconds);
+                                  call.perform();
+                                  ESP_LOGD("rotary_encoder_script", "%s setting alarm_on_local_after_seconds to %i", rotation.c_str(), alarm_on_local_after_seconds);
+                                }
+                              }
+                              else if (current_page_id_value == 3) { //update alarm volume
+                                ESP_LOGD("rotary_encoder_script", "rotate_switch_single_value %i", rotate_switch_single_value);
+                                if (rotate_switch_single_value == 1) { //update alarm_volume_increase
+                                  int alarmVolumeIncrease = id(alarm_volume_increase).state;
+                                  if (clockwise == true) {
+                                    alarmVolumeIncrease += 1;
+                                    if (alarmVolumeIncrease > 100) {
+                                      alarmVolumeIncrease = 100;
+                                    }
+                                  }
+                                  else {
+                                    alarmVolumeIncrease -= 1;
+                                    if (alarmVolumeIncrease < 0) {
+                                      alarmVolumeIncrease = 0;
+                                    }
+                                  }
+                                  auto call = id(alarm_volume_increase).make_call();
+                                  call.set_value(alarmVolumeIncrease);
+                                  call.perform();
+                                  ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase to %i", rotation.c_str(), alarmVolumeIncrease);
+                                }
+                                else if (rotate_switch_single_value == 2) { //update alarm_volume_increase_duration
+                                  int alarmVolumeIncreaseDuration = id(alarm_volume_increase_duration).state;
+                                  if (clockwise == true) {
+                                    alarmVolumeIncreaseDuration += 1;
+                                    if (alarmVolumeIncreaseDuration > 300) {
+                                      alarmVolumeIncreaseDuration = 0;
+                                    }
+                                  }
+                                  else {
+                                    alarmVolumeIncreaseDuration -= 1;
+                                    if (alarmVolumeIncreaseDuration < 0) {
+                                      alarmVolumeIncreaseDuration = 300;
+                                    }
+                                  }
+                                  auto call = id(alarm_volume_increase_duration).make_call();
+                                  call.set_value(alarmVolumeIncreaseDuration);
+                                  call.perform();
+                                  ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_duration to %i", rotation.c_str(), alarmVolumeIncreaseDuration);
+                                }
+                                else if (rotate_switch_single_value == 3) { //update alarm_volume_increase_start
+                                  int alarmVolumeIncreaseStart = id(alarm_volume_increase_start).state;
+                                  if (clockwise == true) {
+                                    alarmVolumeIncreaseStart += 1;
+                                    if (alarmVolumeIncreaseStart > 100) {
+                                      alarmVolumeIncreaseStart = 100;
+                                    }
+                                  }
+                                  else {
+                                    alarmVolumeIncreaseStart -= 1;
+                                    if (alarmVolumeIncreaseStart < 0) {
+                                      alarmVolumeIncreaseStart = 0;
+                                    }
+                                  }
+                                  auto call = id(alarm_volume_increase_start).make_call();
+                                  call.set_value(alarmVolumeIncreaseStart);
+                                  call.perform();
+                                  ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_start to %i", rotation.c_str(), alarmVolumeIncreaseStart);
+                                }
+                                else if (rotate_switch_single_value == 4) { //update alarm_volume_increase_end
+                                  int alarmVolumeIncreaseEnd = id(alarm_volume_increase_end).state;
+                                  if (clockwise == true) {
+                                    alarmVolumeIncreaseEnd += 1;
+                                    if (alarmVolumeIncreaseEnd > 100) {
+                                      alarmVolumeIncreaseEnd = 100;
+                                    }
+                                  }
+                                  else {
+                                    alarmVolumeIncreaseEnd -= 1;
+                                    if (alarmVolumeIncreaseEnd < 0) {
+                                      alarmVolumeIncreaseEnd = 0;
+                                    }
+                                  }
+                                  auto call = id(alarm_volume_increase_end).make_call();
+                                  call.set_value(alarmVolumeIncreaseEnd);
+                                  call.perform();
+                                  ESP_LOGD("rotary_encoder_script", "%s setting alarm_volume_increase_end to %i", rotation.c_str(), alarmVolumeIncreaseEnd);
+                                }
+                              }
+                              else if (current_page_id_value > 3 && current_page_id_value < 8) { //ha pages
+                                int ha_value = 0;
+                                if (current_page_id_value == 4) {
+                                  ha_value = id(ha_1_pre_minute).state;
+                                }
+                                else if (current_page_id_value == 5) {
+                                  ha_value = id(ha_2_pre_minute).state;
+                                }
+                                else if (current_page_id_value == 6) {
+                                  ha_value = id(ha_3_pre_minute).state;
+                                }
+                                else if (current_page_id_value == 7) {
+                                  ha_value = id(ha_4_pre_minute).state;
+                                }
+                                if (rotate_switch_single_value == 1) { //update ha minutes
+                                  if (clockwise) {
+                                    ha_value += 1;
+                                    if (ha_value > 99) {
+                                      ha_value = -99;
+                                    }
+                                  }
+                                  else {
+                                    ha_value -= 1;
+                                    if (ha_value < -99) {
+                                      ha_value = 99;
+                                    }
+                                  }
 
-              if (current_page_id_value == 4) {
-                auto call = id(ha_1_pre_minute).make_call();
-                call.set_value(ha_value);
-                call.perform();
-              }
-              else if (current_page_id_value == 5) {
-                auto call = id(ha_2_pre_minute).make_call();
-                call.set_value(ha_value);
-                call.perform();
-              }
-              else if (current_page_id_value == 6) {
-                auto call = id(ha_3_pre_minute).make_call();
-                call.set_value(ha_value);
-                call.perform();
-              }
-              else if (current_page_id_value == 7) {
-                auto call = id(ha_4_pre_minute).make_call();
-                call.set_value(ha_value);
-                call.perform();
-              }
-              ESP_LOGD("rotary_encoder_script", "%s setting ha_%i_pre_minute to %i", rotation.c_str(), current_page_id_value-3, ha_value);
-            }
-          }
-          else if (current_page_id_value == 8) { //sleep timer pages
-            int sleep_timer_duration_value = id(sleep_timer_duration).state;
-            if (rotate_switch_single_value == 1) { //update sleep timer minutes
-              if (clockwise) {
-                sleep_timer_duration_value += 5;
-                if (sleep_timer_duration_value > 180) {
-                  sleep_timer_duration_value = 10;
-                }
-              }
-              else {
-                sleep_timer_duration_value -= 5;
-                if (sleep_timer_duration_value < 10) {
-                  sleep_timer_duration_value = 180;
-                }
-              }
+                                  if (current_page_id_value == 4) {
+                                    auto call = id(ha_1_pre_minute).make_call();
+                                    call.set_value(ha_value);
+                                    call.perform();
+                                  }
+                                  else if (current_page_id_value == 5) {
+                                    auto call = id(ha_2_pre_minute).make_call();
+                                    call.set_value(ha_value);
+                                    call.perform();
+                                  }
+                                  else if (current_page_id_value == 6) {
+                                    auto call = id(ha_3_pre_minute).make_call();
+                                    call.set_value(ha_value);
+                                    call.perform();
+                                  }
+                                  else if (current_page_id_value == 7) {
+                                    auto call = id(ha_4_pre_minute).make_call();
+                                    call.set_value(ha_value);
+                                    call.perform();
+                                  }
+                                  ESP_LOGD("rotary_encoder_script", "%s setting ha_%i_pre_minute to %i", rotation.c_str(), current_page_id_value-3, ha_value);
+                                }
+                              }
+                              else if (current_page_id_value == 8) { //sleep timer pages
+                                int sleep_timer_duration_value = id(sleep_timer_duration).state;
+                                if (rotate_switch_single_value == 1) { //update sleep timer minutes
+                                  if (clockwise) {
+                                    sleep_timer_duration_value += 5;
+                                    if (sleep_timer_duration_value > 180) {
+                                      sleep_timer_duration_value = 10;
+                                    }
+                                  }
+                                  else {
+                                    sleep_timer_duration_value -= 5;
+                                    if (sleep_timer_duration_value < 10) {
+                                      sleep_timer_duration_value = 180;
+                                    }
+                                  }
 
-              auto call = id(sleep_timer_duration).make_call();
-              call.set_value(sleep_timer_duration_value);
-              call.perform();
+                                  auto call = id(sleep_timer_duration).make_call();
+                                  call.set_value(sleep_timer_duration_value);
+                                  call.perform();
 
-              ESP_LOGD("rotary_encoder_script", "%s setting sleep_timer_duration to %i", rotation.c_str(), sleep_timer_duration_value);
-            }
-          }
-          else if (current_page_id_value == 9) { //Radio selector page
-            auto size = id(alarm_stream_name).size();
-            ESP_LOGD("rotary_encoder_script", "alarm_stream_name select has %d options", size);
+                                  ESP_LOGD("rotary_encoder_script", "%s setting sleep_timer_duration to %i", rotation.c_str(), sleep_timer_duration_value);
+                                }
+                              }
+                              else if (current_page_id_value == 9) { //Radio selector page
+                                auto size = id(alarm_stream_name).size();
+                                ESP_LOGD("rotary_encoder_script", "alarm_stream_name select has %d options", size);
 
-            auto index = id(alarm_stream_name).active_index();
-            if (index.has_value()) {
-              ESP_LOGD("rotary_encoder_script", "alarm_stream_name option at index %d is active", index.value());
+                                auto index = id(alarm_stream_name).active_index();
+                                if (index.has_value()) {
+                                  ESP_LOGD("rotary_encoder_script", "alarm_stream_name option at index %d is active", index.value());
 
-              int currentIndex = index.value();
-              if (clockwise) {
-                currentIndex += 1;
-                if (currentIndex >= size) {
-                  currentIndex = 0;
-                }
-              }
-              else {
-                currentIndex -= 1;
-                if (currentIndex < 0) {
-                  currentIndex = size -1;
-                }
-              }
+                                  int currentIndex = index.value();
+                                  if (clockwise) {
+                                    currentIndex += 1;
+                                    if (currentIndex >= size) {
+                                      currentIndex = 0;
+                                    }
+                                  }
+                                  else {
+                                    currentIndex -= 1;
+                                    if (currentIndex < 0) {
+                                      currentIndex = size -1;
+                                    }
+                                  }
 
-              auto alarmStreamName = id(alarm_stream_name).make_call();
-              alarmStreamName.set_index(currentIndex);
-              alarmStreamName.perform();
+                                  auto alarmStreamName = id(alarm_stream_name).make_call();
+                                  alarmStreamName.set_index(currentIndex);
+                                  alarmStreamName.perform();
 
-              ESP_LOGD("rotary_encoder_script", "alarm_stream_name new selected index is %i", currentIndex);
-            } else {
-              ESP_LOGD("rotary_encoder_script", "alarm_stream_name no option is active");
-            }
-          }
-          else if (current_page_id_value == 10) { //alarm contrast page
-            if (!id(night_mode).state) {
-              int screen_contrast_day_value = id(screen_contrast_day).state;
-              if (clockwise == true) {
-                screen_contrast_day_value += 5;
-              }
-              else {
-                screen_contrast_day_value -= 5;
-              }
-              auto call = id(screen_contrast_day).make_call();
-              call.set_value(screen_contrast_day_value);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting screen_contrast_day to %i", rotation.c_str(), screen_contrast_day_value);
-            }
-            else {
-              int screen_contrast_night_value = id(screen_contrast_night).state;
-              if (clockwise == true) {
-                screen_contrast_night_value += 5;
-              }
-              else {
-                screen_contrast_night_value -= 5;
-              }
-              auto call = id(screen_contrast_night).make_call();
-              call.set_value(screen_contrast_night_value);
-              call.perform();
-              ESP_LOGD("rotary_encoder_script", "%s setting screen_contrast_night to %i", rotation.c_str(), screen_contrast_night_value);
-            }
-            id(reset_page_script).execute();
-          }
-          else if (current_page_id_value == 11) { //restart page
-            ESP_LOGD("rotary_encoder_script", "Start rotate_switch_single with %i", rotate_switch_single_value);
-            if (rotate_switch_single_value == 0) {
-              rotate_switch_single_value = 1;
-            }
-            else {
-              rotate_switch_single_value = 0;
-            }
-            ESP_LOGD("rotary_encoder_script", "Update rotate_switch_single with %i", rotate_switch_single_value);
-            id(rotate_switch_single) = rotate_switch_single_value;
-            id(reset_page_script).execute();
-          }
-          else if (current_page_id_value == 12) { //alarm volume page
-            if (id(alarm_on).state && (id(alarm_volume_increase_duration).state > 0 && id(alarm_volume_increase).state > 0)) {
-              ESP_LOGD("rotary_encoder_script", "Alarm is off with volume management, not changing volume");
-              id(reset_page_script_no_timeout).execute();
-              return;
-            }
+                                  ESP_LOGD("rotary_encoder_script", "alarm_stream_name new selected index is %i", currentIndex);
+                                } else {
+                                  ESP_LOGD("rotary_encoder_script", "alarm_stream_name no option is active");
+                                }
+                              }
+                              else if (current_page_id_value == 10) { //alarm contrast page
+                                if (!id(night_mode).state) {
+                                  int screen_contrast_day_value = id(screen_contrast_day).state;
+                                  if (clockwise == true) {
+                                    screen_contrast_day_value += 5;
+                                  }
+                                  else {
+                                    screen_contrast_day_value -= 5;
+                                  }
+                                  auto call = id(screen_contrast_day).make_call();
+                                  call.set_value(screen_contrast_day_value);
+                                  call.perform();
+                                  ESP_LOGD("rotary_encoder_script", "%s setting screen_contrast_day to %i", rotation.c_str(), screen_contrast_day_value);
+                                }
+                                else {
+                                  int screen_contrast_night_value = id(screen_contrast_night).state;
+                                  if (clockwise == true) {
+                                    screen_contrast_night_value += 5;
+                                  }
+                                  else {
+                                    screen_contrast_night_value -= 5;
+                                  }
+                                  auto call = id(screen_contrast_night).make_call();
+                                  call.set_value(screen_contrast_night_value);
+                                  call.perform();
+                                  ESP_LOGD("rotary_encoder_script", "%s setting screen_contrast_night to %i", rotation.c_str(), screen_contrast_night_value);
+                                }
+                                id(reset_page_script).execute();
+                              }
+                              else if (current_page_id_value == 11) { //restart page
+                                ESP_LOGD("rotary_encoder_script", "Start rotate_switch_single with %i", rotate_switch_single_value);
+                                if (rotate_switch_single_value == 0) {
+                                  rotate_switch_single_value = 1;
+                                }
+                                else {
+                                  rotate_switch_single_value = 0;
+                                }
+                                ESP_LOGD("rotary_encoder_script", "Update rotate_switch_single with %i", rotate_switch_single_value);
+                                id(rotate_switch_single) = rotate_switch_single_value;
+                                id(reset_page_script).execute();
+                              }
+                              else if (current_page_id_value == 12) { //alarm volume page
+                                if (id(alarm_on).state && (id(alarm_volume_increase_duration).state > 0 && id(alarm_volume_increase).state > 0)) {
+                                  ESP_LOGD("rotary_encoder_script", "Alarm is off with volume management, not changing volume");
+                                  id(reset_page_script_no_timeout).execute();
+                                  return;
+                                }
 
-            int value = id(alarm_volume).state;
-            if (clockwise == false) {
-              value -=1;
-              if (value < 0) {
-                value = 0;
-              }
-            }
-            else {
-              value +=1;
-              if (value > 100) {
-                value = 100;
-              }
-            }
+                                int value = id(alarm_volume).state;
+                                if (clockwise == false) {
+                                  value -=1;
+                                  if (value < 0) {
+                                    value = 0;
+                                  }
+                                }
+                                else {
+                                  value +=1;
+                                  if (value > 100) {
+                                    value = 100;
+                                  }
+                                }
 
-            auto call = id(alarm_volume).make_call();
-            call.set_value(value);
-            call.perform();
-            id(reset_page_script).execute();
-          }
+                                auto call = id(alarm_volume).make_call();
+                                call.set_value(value);
+                                call.perform();
+                                id(reset_page_script).execute();
+                              }
 
-          ESP_LOGD("rotary_encoder_script", "Page %i with rotation %s", current_page_id_value, rotation.c_str());
+                              ESP_LOGD("rotary_encoder_script", "Page %i with rotation %s", current_page_id_value, rotation.c_str());
   - id: reset_page_script
     mode: restart
     then:
@@ -2740,11 +2766,15 @@ script:
   - id: set_volume
     parameters:
       volume: int
+      wait: bool
     then:
       if:
         condition:
-          - lambda: "return (id(current_volume) != volume);"
+          and:
+            - lambda: "return (id(current_volume) != volume);"
         then:
+          - wait_until:
+              lambda: 'return (wait == false || (wait == true && id(media_player_alarm).state != 2));'
           - media_player.volume_set: !lambda
               float newVolume = float(volume);
               float newVolumeFloat = (newVolume/100);
@@ -2757,7 +2787,7 @@ script:
     then:
       - lambda: |-
           auto mediaPlayerCall = id(media_player_alarm).make_call();
-          std::string streamUrl = id(alarm_stream_url).state;
+          std::string streamUrl = id(alarm_stream_url).current_option();
           if (from_cache) {
             streamUrl = id(media_url);
             ESP_LOGD("play_url", "from_cache is true, using cached stream url");
@@ -2849,7 +2879,7 @@ script:
 
                       if (id(current_volume) != newVolume) {
                         //ESP_LOGD("alarm_volume_manager", "update volume with %i", newVolume);
-                        id(set_volume).execute(newVolume);
+                        id(set_volume).execute(newVolume, false);
                       }
                     }
                   }
