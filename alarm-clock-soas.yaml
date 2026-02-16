@@ -5,7 +5,9 @@ esphome:
         - script.execute: time_sync_wait
     - priority: -100.0
       then: #booting done
-        - lambda: 'id(boot_done) = true;'
+        - lambda: |-
+            id(boot_done) = true;
+            id(soas_version).publish_state("2026.2.16.1");
 
 
 logger:
@@ -453,7 +455,6 @@ text_sensor:
   - name: "SOAS Version"
     platform: template
     id: soas_version
-    lambda: return {"2026.2.14.1"};
     update_interval: never
 
   # - name: "Debug logger"

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026.2.16.1
+- Fixed incorrect version displayed [#48](https://github.com/Skons/SOAS/issues/48)
+
 ## 2026.2.14.1
 - Added `display_on_off_nigthmode`
 - Added `codec_support_enabled` for the esp-idf framework [#47](https://github.com/Skons/SOAS/issues/47)
