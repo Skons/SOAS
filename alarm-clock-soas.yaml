@@ -619,8 +619,8 @@ binary_sensor:
                 - delay: 1s #give the media_player a break
                 - switch.turn_on: music_on
       - timing: #single click
-        - ON for at most ${alarm_off_button_single_click_time}
-        - OFF for at least 0.5s
+        - ON for at most ${alarm_off_button_single_click_time_max}
+        - OFF for at least ${alarm_off_button_single_click_time_min}
         then:
           - script.execute: display_off_script
           - lambda: |-

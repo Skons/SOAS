@@ -168,7 +168,8 @@ substitutions:
   alarm_off_button_pin: GPIO4
   rotary_button_pin: GPIO8
   language: "EN" #NL and DE are also supported
-  alarm_off_button_single_click_time: 1s #max time in seconds, which the alarm off button can be pressed to recognize the press
+  alarm_off_button_single_click_time_max: 1s    #max time in seconds, which the alarm off button can be pressed to recognize the press
+  alarm_off_button_single_click_time_min: 0.25s #min time in seconds, which the alarm off button must be pressed to recognize the press
   timezone: Europe/Amsterdam
 
 packages:
