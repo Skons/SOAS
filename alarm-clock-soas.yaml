@@ -26,6 +26,7 @@ logger:
               }
               else if (id(music_on).state) {
                 id(music_on).turn_off(); //switching music off, it does not work
+                //id(debug_logger).publish_state("Media player stopped " + to_string(id(media_player_stopped)) + " times. Turning music off.");
               }
             }
           }
@@ -587,6 +588,15 @@ binary_sensor:
         - ON for at least 2s
         - OFF for at least 0.5s
         then:
+          - logger.log: alarm_off long press
+          - switch.turn_off: alarm_on
+          - switch.turn_off: alarm_on_local
+          - switch.turn_off: music_on
+          - switch.turn_off: snooze_on
+          - script.execute: #set volume back to default
+              id: set_volume
+              volume: !lambda "return id(alarm_volume).state;"
+              wait: false
           - script.execute:
               id: play_url
               from_cache: false
@@ -606,18 +616,10 @@ binary_sensor:
         - OFF for at least 0.5s
         then:
           - logger.log: alarm_off double press
-          - if:
-              condition:
-                and:
-                  - switch.is_on: display_on_off_automatically
-                  - switch.is_off: display_on
-              then:
-                - switch.turn_on: display_on
-                - script.execute: display_off_script
-              else:
-                - switch.turn_off: alarm_on
-                - delay: 1s #give the media_player a break
-                - switch.turn_on: music_on
+          - switch.turn_off: alarm_on
+          - switch.turn_off: music_on
+          - switch.turn_off: snooze_on
+          - switch.turn_on: alarm_on_local
       - timing: #single click
         - ON for at most ${alarm_off_button_single_click_time_max}
         - OFF for at least ${alarm_off_button_single_click_time_min}
@@ -1109,9 +1111,15 @@ switch:
       - script.execute: alarm_volume_manager
       - if:
           condition:
+            media_player.is_off:
+          then:
+            - logger.log: "Turn media player on"
+            - media_player.turn_on: media_player_alarm
+      - if:
+          condition:
             switch.is_on: music_on
           then:
-            switch.turn_off: alarm_on
+            - switch.turn_off: alarm_on
           else:
             - if:
                 condition:
@@ -1166,12 +1174,16 @@ switch:
           condition:
             switch.is_on: alarm_on
           then:
-            switch.turn_off: music_on
+            - switch.turn_off: music_on
           else:
+            - if:
+                condition:
+                  media_player.is_off:
+                then:
+                  - logger.log: "Turn media player on"
+                  - media_player.turn_on: media_player_alarm
             - if: #if media player is not playing, or not announcing, then play music
                 all:
-                  - not:
-                      media_player.is_announcing:
                   - media_player.is_idle:
                 then:
                   - wait_until:
@@ -1192,6 +1204,7 @@ switch:
           condition:
             switch.is_off: alarm_on
           then:
+            - switch.turn_off: alarm_on_local
             - media_player.stop:
             - media_player.stop:
                 announcement: true
@@ -1243,7 +1256,7 @@ switch:
             condition:
               switch.is_on: music_on
             then:
-              switch.turn_off: music_on
+              - switch.turn_off: music_on
   - name: "Clock on display"
     platform: template
     id: clock_on_display
@@ -2719,8 +2732,8 @@ script:
             int sleepTimerTimestamp =  eSleepTimerTimestamp.timestamp;
             //ESP_LOGD("check_alarms", "current %i sleeptimer %i", currentTimeForAlarmTimeStamp, sleepTimerTimestamp);
             if (currentTimeForAlarmTimeStamp >= sleepTimerTimestamp) {
+              ESP_LOGD("check_alarms", "Sleep timer will be disabled");
               id(music_on).turn_off();
-              ESP_LOGD("check_alarms", "Sleep timer disabled");
             }
           }
   - id: media_player_watchdog
@@ -2789,6 +2802,12 @@ script:
       - lambda: |-
           auto mediaPlayerCall = id(media_player_alarm).make_call();
           std::string streamUrl = id(alarm_stream_url).current_option();
+          ESP_LOGD("play_url", "Configured stream url %s", streamUrl.c_str());
+          if (strcmp(streamUrl.c_str(), "Local") == 0) {
+            ESP_LOGD("play_url", "Play local stream url %s", streamUrl.c_str());
+            id(alarm_on_local).turn_on();
+            return;
+          }
           if (from_cache) {
             streamUrl = id(media_url);
             ESP_LOGD("play_url", "from_cache is true, using cached stream url");
@@ -2886,3 +2905,4 @@ script:
                   }
                 }
             - delay: 1s
+

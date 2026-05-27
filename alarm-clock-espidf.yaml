@@ -25,9 +25,11 @@ media_player:
     media_pipeline:
         speaker: media_spk_resampling_input
         num_channels: 1
+        format: NONE
     announcement_pipeline:
         speaker: announcement_spk_resampling_input
         num_channels: 1
+        format: NONE
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: media_spk_mixer_input
@@ -49,24 +51,17 @@ media_player:
       - logger.log: "Playback paused!"
     on_idle:
       - logger.log: "Playback finished!"
+    on_turn_off:
+      - logger.log: "Playback turned off!"
 
 switch:
   - id: !extend alarm_on_local
     on_turn_off:
-      - mixer_speaker.apply_ducking:  # Stop ducking the media stream over 2 seconds
-          id: media_spk_mixer_input
-          decibel_reduction: 0
-          duration: 2.0s
       - lambda:
           auto call = id(alarm_off_local_timestamp).make_call();
           call.set_datetime(id(ntp).now().timestamp);
           call.perform();
     on_turn_on:
-        # Duck media audio by 20 decibels instantly
-        - mixer_speaker.apply_ducking:
-            id: media_spk_mixer_input
-            decibel_reduction: 20
-            duration: 0.0s
         - switch.turn_on: display_on
         - while:
             condition:
@@ -75,11 +70,10 @@ switch:
               # Play the alarm sound as an announcement
               - media_player.speaker.play_on_device_media_file:
                   media_file: alarm_sound
-                  announcement: true
               # Wait until the alarm sound starts playing
               - wait_until:
-                  media_player.is_announcing:
+                  media_player.is_playing:
               # Wait until the alarm sound stops playing
               - wait_until:
                   not:
-                    media_player.is_announcing:
+                    media_player.is_playing:

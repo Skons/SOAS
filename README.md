@@ -72,11 +72,11 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
 * Volume increase of the alarm after a defined time of alarming
   - Start and / or end volume can be configured
   - The time until the next defined increase can be configured
-* Ability to `Display on/off automatically` (not available on the clock itself)
+* Ability to `Display off automatically` (not available on the clock itself)
   - Display is switched on when there is interaction or when alarm fires
   - Display is switched off when there has not been input for 10 seconds
   - It will not switch off when alarm_on, snooze_on or music_on. Unless `Display off while snooze on` and/or `Display off while snooze on` are switched off.
-  - `Display on/off nightmode` will switch `Display on/off automatically` synchronously with the `Night Mode` switch. When `Night mode automatically` is switched on, all will go automatically.
+  - `Display off nightmode` will switch `Display off automatically` synchronously with the `Night Mode` switch. When `Night mode automatically` is switched on, all will go automatically.
 
 
 ### <a name='OptionalFeatures'></a>Optional Features
@@ -190,10 +190,12 @@ select:
     options:
       - "mp3 url to radio" #AAC seams to be making SOAS crash, FLAC or WAV will probably also work
       - "mp3 url to radio #2"
+      - "Local" #By using the name and option Local, you can define the local file as alarm
   - id: !extend alarm_stream_name
     options:
       - "Friendly name of the radio station"
       - "Friendly name of the radio station #2"
+      - "Local"
 
 esphome:
   name: alarm-clock-soas
@@ -205,6 +207,7 @@ esphome:
 psram:
   mode: octal
   speed: 80MHz
+  #ignore_not_found: false #https://esphome.io/components/media_player/speaker/#media_player-speaker-performance
 ```
 
 Save the `fonts` folder into your ESPHome folder. The folder needs to be placed in the same directory as your YAML.
@@ -444,7 +447,7 @@ When snooze is on, the snooze will be switched off on single press.
 
 ### <a name='Topbuttondoublepress'></a>Top button double press
 
-When the alarm is on, you can switch to music playing. This is usefull when the local alarm kicks in but the music was working fine, this is certainly the case with `alarm_on_local_after_seconds`. If you have the sleep timer enabled, it will also switch on when the music switches on. The sleep timer does not switch on when a remote stream is sent to SOAS, by using the radio browser for instance.
+Switch the local alarm on, mainly for testing purposes
 
 ### <a name='Topbuttontriplepress'></a>Top button triple press
 
@@ -452,7 +455,7 @@ Switch the alarm on, mainly for testing purposes.
 
 ### <a name='Topbuttonlongpress'></a>Top button long press
 
-Just play the configured url. When the local alarm is sounding, you can switch to your streaming URL. If the music and alarm are off, you can enable streaming without the sleep timer on, if it is enabled.
+Just play music. This switches off the alarm and snooze, and does not enable the sleep timer.
 
 ### <a name='Timepage'></a>Time page
 

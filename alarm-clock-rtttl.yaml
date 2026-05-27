@@ -66,7 +66,7 @@ switch:
             then:
                 # Play the alarm sound on buzzer
               - lambda: |-
-                  auto selectState = id(alarm_buzzer_sound).state.c_str();
+                  auto selectState = id(alarm_buzzer_sound).current_option().c_str();
                   id(my_rtttl).play(selectState);
                   ESP_LOGD("alarm_on_local", "Playing buzzer sound %s", selectState);
                 # Wait until the alarm sound starts playing

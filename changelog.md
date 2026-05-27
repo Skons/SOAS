@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.#.#.#
+- **BREAKING** `alarm_off_button_single_click_time` is replaced with `alarm_off_button_single_click_time_min` and `alarm_off_button_single_click_time_max` has been added. Update your yaml to add these to the substitutions.
+- Local file for espidf will not be sent over the announcement channel anymore
+- Media player will be turned on when music is played or the alarm is switched on
+- Top button double press now enables local alarm for testing purposes
+- Simplified the top button long press
+- When the `alarm_stream_url` contains an item with the name `Local`, then the local file will be used for alarm and for music.
+- Fixed issue [#55](https://github.com/Skons/SOAS/issues/55)
+- Selecting the RTTTL option is prepared for a future esphome update
+
 ## 2026.2.16.1
 - Fixed incorrect version displayed [#48](https://github.com/Skons/SOAS/issues/48)
 
