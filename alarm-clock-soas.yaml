@@ -7,7 +7,7 @@ esphome:
       then: #booting done
         - lambda: |-
             id(boot_done) = true;
-            id(soas_version).publish_state("2026.2.16.1");
+            id(soas_version).publish_state("2026.5.27.2");
 
 
 logger:
@@ -882,10 +882,10 @@ select:
     id: alarm_stream_url
     optimistic: true
     restore_value: true
-    set_action:
-      - media_player.play_media:
-          id: media_player_alarm
-          media_url: !lambda 'return x.c_str();'
+    on_value:
+      - script.execute:
+          id: play_url
+          from_cache: false
     internal: true
   - name: Alarm stream name
     platform: template
