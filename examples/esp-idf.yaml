@@ -16,12 +16,15 @@ substitutions:
   language: "NL"
   alarm_off_button_single_click_time_max: 1s
   alarm_off_button_single_click_time_min: 0.25s
+  top_button_long_press_enabled: "true"
+  top_button_triple_press_enabled: "true"
+  top_button_double_press_enabled: "true"
   timezone: Europe/Amsterdam
 
 packages:
   remote_package_files:
     url: https://github.com/skons/soas
-    files: [alarm-clock-soas.yaml, alarm-clock-espidf.yaml, alarm-clock-ds1307.yaml]
+    files: [alarm-clock-soas.yaml, alarm-clock-ds1307.yaml]
 
 time:
   - id: !extend ntp

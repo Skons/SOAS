@@ -1,7 +1,10 @@
 # Changelog
 
 ## 2026.5.27.2
+- **BREAKING** Removed the yaml files for esp-idf and arduino
+- **BREAKING** Removed the audio-server and both RTTTL modules
 - **BREAKING** `alarm_off_button_single_click_time` is replaced with `alarm_off_button_single_click_time_min` and `alarm_off_button_single_click_time_max` has been added. Update your yaml to add these to the substitutions.
+- **BREAKING** `top_button_long_press_enabled`, `top_button_triple_press_enabled` and `top_button_double_press_enabled` are added for control over the button
 - Local file for espidf will not be sent over the announcement channel anymore
 - Media player will be turned on when music is played or the alarm is switched on
 - Top button double press now enables local alarm for testing purposes
