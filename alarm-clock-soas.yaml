@@ -7,7 +7,7 @@ esphome:
       then: #booting done
         - lambda: |-
             id(boot_done) = true;
-            id(soas_version).publish_state("2026.5.28.1");
+            id(soas_version).publish_state("2026.8.14.1");
 
 
 logger:

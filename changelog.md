@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026.5.27.2
+## 2026.8.14.1
 - **BREAKING** Removed the yaml files for esp-idf and arduino
 - **BREAKING** Removed the audio-server and both RTTTL modules
 - **BREAKING** `alarm_off_button_single_click_time` is replaced with `alarm_off_button_single_click_time_min` and `alarm_off_button_single_click_time_max` has been added. Update your yaml to add these to the substitutions.
