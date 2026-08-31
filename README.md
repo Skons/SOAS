@@ -172,6 +172,7 @@ substitutions:
   top_button_long_press_enabled: "true" #Set to false to disable long press on the top button
   top_button_triple_press_enabled: "true" #Set to false to disable triple press on the top button
   top_button_double_press_enabled: "true" #Set to false to disable double press on the top button
+  play_on_switch_enabled: "true" #Set to false to disable the automatic start of the music when switching alarms
   timezone: Europe/Amsterdam
 
 packages:
