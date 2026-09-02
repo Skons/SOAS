@@ -895,9 +895,13 @@ select:
     optimistic: true
     restore_value: true
     on_value:
-      - script.execute:
-          id: play_url
-          from_cache: false
+      - if:
+          condition:
+            lambda: 'return ${play_on_switch_enabled};'
+          then:
+            - script.execute:
+              id: play_url
+              from_cache: false
     internal: true
   - name: Alarm stream name
     platform: template
