@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.9.2.1
+- **BREAKING** `play_on_switch_enabled` is added. Thanks @becast
+- All pages now have a title and description if needed
+- Simplified the HA pages
+- Triple click on the HA pages triggered the wrong page
+- Fixed bugs where the comparison was not explicit
+- Fixed multiple compilation warnings
+- Added translations
+
 ## 2026.8.14.1
 - **BREAKING** Removed the yaml files for esp-idf and arduino
 - **BREAKING** Removed the audio-server and both RTTTL modules

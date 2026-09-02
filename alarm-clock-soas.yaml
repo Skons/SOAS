@@ -1,4 +1,6 @@
 esphome:
+  includes:
+    - page_utils.h
   on_boot:
     - priority: 800
       then:
@@ -7,8 +9,7 @@ esphome:
       then: #booting done
         - lambda: |-
             id(boot_done) = true;
-            id(soas_version).publish_state("2026.8.14.1");
-
+            id(soas_version).publish_state("2026.9.2.1");
 
 logger:
   on_message:
@@ -16,7 +17,7 @@ logger:
     then:
       - lambda: |-
           //catch error thrown by speaker_media_player, works on esp idf based builds only
-          if (tag == "speaker_media_player" && id(media_player_alarm).state == 2 && (id(alarm_on).state || id(music_on).state)) { //MEDIA_PLAYER_STATE_NONE = 0 , MEDIA_PLAYER_STATE_IDLE = 1 , MEDIA_PLAYER_STATE_PLAYING = 2 , MEDIA_PLAYER_STATE_PAUSED = 3 ,  MEDIA_PLAYER_STATE_ANNOUNCING = 4
+          if (strcmp(tag, "speaker_media_player") == 0 && id(media_player_alarm).state == 2 && (id(alarm_on).state || id(music_on).state)) { //MEDIA_PLAYER_STATE_NONE = 0 , MEDIA_PLAYER_STATE_IDLE = 1 , MEDIA_PLAYER_STATE_PLAYING = 2 , MEDIA_PLAYER_STATE_PAUSED = 3 ,  MEDIA_PLAYER_STATE_ANNOUNCING = 4
             id(media_player_stopped) = id(media_player_stopped) + 1;
             int maxCounter = 4;
             if (id(media_player_stopped) > maxCounter) {
@@ -30,7 +31,7 @@ logger:
               }
             }
           }
-          else if (tag == "speaker_media_player" && id(media_player_alarm).state == 4 && id(alarm_on).state) { //error on announcement
+          else if (strcmp(tag, "speaker_media_player") == 0 && id(media_player_alarm).state == 4 && id(alarm_on).state) { //error on announcement
             //id(debug_logger).publish_state("announcing Level: " + to_string(level) + ". Tag: " + tag + ". Message:" + message);
           }
 
@@ -719,25 +720,25 @@ binary_sensor:
                       - script.execute: reset_page_script
                 - if:
                     condition:
-                      display.is_displaying_page: page3
+                      display.is_displaying_page: page4
                     then:
                       - switch.toggle: ha_1_on
                       - script.execute: reset_page_script_no_timeout
                 - if:
                     condition:
-                      display.is_displaying_page: page4
+                      display.is_displaying_page: page5
                     then:
                       - switch.toggle: ha_2_on
                       - script.execute: reset_page_script_no_timeout
                 - if:
                     condition:
-                      display.is_displaying_page: page5
+                      display.is_displaying_page: page6
                     then:
                       - switch.toggle: ha_3_on
                       - script.execute: reset_page_script_no_timeout
                 - if:
                     condition:
-                      display.is_displaying_page: page6
+                      display.is_displaying_page: page7
                     then:
                       - switch.toggle: ha_4_on
                       - script.execute: reset_page_script_no_timeout
@@ -1616,6 +1617,45 @@ display:
           if (tv.tv_usec >= 500000) { //every 0.5 second
             shouldBlink = 1;
           }
+          int rotate_switch_single_value = id(rotate_switch_single);
+
+          std::string language = "${language}";
+          std::string topText = "Alarm Settings";
+          if (language == "NL") {
+            topText = "Alarm Instell";
+          }
+          else if (language == "DE") {
+            topText = "Alarm Einstel";
+          }
+          if (rotate_switch_single_value == 1) {
+            topText = "Alarm Hour";
+            if (language == "NL") {
+              topText = "Alarm Uur";
+            }
+            else if (language == "DE") {
+              topText = "Alarm Stunde";
+            }
+          }
+          else if (rotate_switch_single_value == 2) {
+            topText = "Alarm Minute";
+            if (language == "NL") {
+              topText = "Alarm Minuut";
+            }
+            else if (language == "DE") {
+              topText = "Alarm Minute";
+            }
+          }
+          else if (rotate_switch_single_value == 3) {
+            topText = "Local on";
+            if (language == "NL") {
+              topText = "Lokaal on";
+            }
+            else if (language == "DE") {
+              topText = "Lokale eins";
+            }
+          }
+
+          it.printf(it.get_width()/2, 0, id(robotomedium20), TextAlign::TOP_CENTER, topText.c_str());
 
           int calculated_width;
           int calculated_height;
@@ -1626,7 +1666,7 @@ display:
           it.get_text_bounds(0, 0, timeString.c_str(), id(robotomedium30), TextAlign::TOP_CENTER, &calculated_x, &calculated_y, &calculated_width, &calculated_height); //calculate second indicator width
           int indicatorWidth = calculated_width;
 
-          int verticalCorrection = 16;
+          int verticalCorrection = 10;
           int height = it.get_height();
           if (height == 128) {
             height = height /2;
@@ -1634,46 +1674,47 @@ display:
           height = height - verticalCorrection;
 
           int iconVerticalCorrection = 5;
-          int rotate_switch_single_value = id(rotate_switch_single);
           if (it.get_height() == 128 || (it.get_height() == 64 && rotate_switch_single_value < 3)) {
             //alarm clock icon
-            it.printf(0, height-iconVerticalCorrection, id(robotomedium20), TextAlign::BOTTOM_LEFT, "\U000F0020");
+            it.printf(0, 50, id(robotomedium20), TextAlign::CENTER_LEFT, "\U000F0020");
 
-            //alarm clock
+            //alarm clock hour
             if ((shouldBlink && rotate_switch_single_value == 1) || rotate_switch_single_value != 1) {
               if (id(alarm_hour).state > 9) {
-                it.printf((it.get_width()/2)-(indicatorWidth/2), height, id(robotomedium30), TextAlign::BOTTOM_RIGHT, "%i", (int)id(alarm_hour).state);
+                it.printf((it.get_width()/2)-(indicatorWidth/2), 50, id(robotomedium30), TextAlign::CENTER_RIGHT, "%i", (int)id(alarm_hour).state);
               }
               else {
-                it.printf((it.get_width()/2)-(indicatorWidth/2), height, id(robotomedium30), TextAlign::BOTTOM_RIGHT, "0%i", (int)id(alarm_hour).state);
+                it.printf((it.get_width()/2)-(indicatorWidth/2), 50, id(robotomedium30), TextAlign::CENTER_RIGHT, "0%i", (int)id(alarm_hour).state);
               }
             }
-            it.printf((it.get_width()/2), height, id(robotomedium30), TextAlign::BOTTOM_CENTER, ":");
+            it.printf((it.get_width()/2), 50, id(robotomedium30), TextAlign::CENTER, ":");
+            //alarm clock minutes
             if ((shouldBlink && rotate_switch_single_value == 2) || rotate_switch_single_value != 2) {
               if (id(alarm_minute).state > 9) {
-                it.printf((it.get_width()/2)+(indicatorWidth/2), height, id(robotomedium30), TextAlign::BOTTOM_LEFT, "%i", (int)id(alarm_minute).state);
+                it.printf((it.get_width()/2)+(indicatorWidth/2), 50, id(robotomedium30), TextAlign::CENTER_LEFT, "%i", (int)id(alarm_minute).state);
               }
               else {
-                it.printf((it.get_width()/2)+(indicatorWidth/2), height, id(robotomedium30), TextAlign::BOTTOM_LEFT, "0%i", (int)id(alarm_minute).state);
+                it.printf((it.get_width()/2)+(indicatorWidth/2), 50, id(robotomedium30), TextAlign::CENTER_LEFT, "0%i", (int)id(alarm_minute).state);
               }
             }
 
+            //alarm clock enabled icon
             std::string alarmEnabledIcon = "\U000F0131"; //disabled
             if (id(alarm_enabled).state) {
               alarmEnabledIcon = "\U000F0C52";
             }
-            it.printf(it.get_width(), height-iconVerticalCorrection, id(robotomedium20), TextAlign::BOTTOM_RIGHT, alarmEnabledIcon.c_str());
+            it.printf(it.get_width(), 50, id(robotomedium20), TextAlign::CENTER_RIGHT, alarmEnabledIcon.c_str());
           }
 
-          //U000F135A
+          //Local on after seconds
           if (it.get_height() == 128 || (it.get_height() == 64 && rotate_switch_single_value > 2)) {
             std::string alarmOnLocalAfterSecondsIcon = "\U000F135A";
             if (shouldBlink && (int)id(alarm_on_local_after_seconds).state == 0) {
               alarmOnLocalAfterSecondsIcon = "\U000F073A";
             }
-            it.printf(0, (it.get_height()-verticalCorrection)-iconVerticalCorrection, id(robotomedium20), TextAlign::BOTTOM_LEFT, alarmOnLocalAfterSecondsIcon.c_str());
+            it.printf(0, 64, id(robotomedium20), TextAlign::BOTTOM_LEFT, alarmOnLocalAfterSecondsIcon.c_str());
             if ((shouldBlink && rotate_switch_single_value == 3) || rotate_switch_single_value != 3) {
-              it.printf((it.get_width()/2), it.get_height()-verticalCorrection, id(robotomedium30), TextAlign::BOTTOM_CENTER, "%i", (int)id(alarm_on_local_after_seconds).state);
+              it.printf((it.get_width()/2), (it.get_height()-15), id(robotomedium30), TextAlign::BOTTOM_CENTER, "%i s", (int)id(alarm_on_local_after_seconds).state);
             }
           }
 
@@ -1690,32 +1731,46 @@ display:
           std::string language = "${language}";
 
           std::string topText = "Alarm Volume";
-          if (shouldBlink) {
-            if (rotate_switch_single_value == 3) {
-              topText = "Start";
-              if (language == "NL") {
-                topText = "Begin";
-              }
+          if (language == "DE") {
+            topText = "Alarm Lautstärke";
+          }
+          if (rotate_switch_single_value == 3) {
+            topText = "Start";
+            if (language == "NL") {
+              topText = "Begin";
             }
-            else if (rotate_switch_single_value == 4) {
-              topText = "End";
-              if (language == "NL") {
-                topText = "Eind";
-              }
-            }
-            else if (rotate_switch_single_value == 1) {
-              topText = "Increase";
-              if (language == "NL") {
-                topText = "Stijging";
-              }
-            }
-            else if (rotate_switch_single_value == 2) {
-              topText = "Duration";
-              if (language == "NL") {
-                topText = "Duur";
-              }
+            else if (language == "DE") {
+              topText = "Anfang";
             }
           }
+          else if (rotate_switch_single_value == 4) {
+            topText = "End";
+            if (language == "NL") {
+              topText = "Eind";
+            }
+            else if (language == "DE") {
+              topText = "Ende";
+            }
+          }
+          else if (rotate_switch_single_value == 1) {
+            topText = "Increase";
+            if (language == "NL") {
+              topText = "Stijging";
+            }
+            else if (language == "DE") {
+              topText = "Anstieg";
+            }
+          }
+          else if (rotate_switch_single_value == 2) {
+            topText = "Duration";
+            if (language == "NL") {
+              topText = "Duur";
+            }
+            else if (language == "DE") {
+              topText = "Dauer";
+            }
+          }
+
           it.printf(it.get_width()/2, 0, id(robotomedium20), TextAlign::TOP_CENTER, topText.c_str());
 
           int alarmVolumeIncreaseStart = id(alarm_volume_increase_start).state;
@@ -1780,272 +1835,79 @@ display:
           id(current_page_id) = 3;
       - id: page4 #HA 1 page
         lambda: |-
-          //https://gist.github.com/alvesvaren/767d9585f0ecbef18ef1c7c0492c4332
-          struct timeval tv;
-          gettimeofday(&tv, NULL);
-          int shouldBlink = 0;
-          if (tv.tv_usec >= 500000) { //every 0.5 second
-            shouldBlink = 1;
-          }
-          int ha_value = id(ha_1_pre_minute).state;
-          int rotate_switch_single_value = id(rotate_switch_single);
-
-          it.printf(it.get_width()/2, 0, id(robotomedium20), TextAlign::TOP_CENTER, "HA 1");
-
-          //the font will be placed too high by default
-          int fontMarginBottomCorrection = 10;
-
-          int calculated_width;
-          int calculated_height;
-          int calculated_x;
-          int calculated_y;
-          std::string displayString = "\U000F07D0";
-          it.get_text_bounds(0, 0, displayString.c_str(), id(robotomedium30), TextAlign::TOP_CENTER, &calculated_x, &calculated_y, &calculated_width, &calculated_height); //calculate icon dimensions
-          int iconWidthHalf = calculated_width/2;
-
-          //ha icon
-          it.printf(iconWidthHalf, it.get_height()/2, id(robotomedium20), TextAlign::CENTER, "\U000F07D0");
-
-          int iconLeftRightMargin = 2;
-          int iconTopMargin = 4;
-          int iconBottomMargin = 3;
-
-          //ha icon hide
-          if (shouldBlink) {
-            //it.printf(iconWidthHalf+iconLeftRightMargin, (it.get_height()/2)+iconBottomMargin, id(robotomedium15), COLOR_OFF, TextAlign::BOTTOM_RIGHT, "\U000F0764");
-            it.printf(iconWidthHalf-iconLeftRightMargin, (it.get_height()/2)+iconBottomMargin, id(robotomedium15), COLOR_OFF, TextAlign::BOTTOM_LEFT, "\U000F0764");
-            it.printf(iconWidthHalf+iconLeftRightMargin, (it.get_height()/2)-iconTopMargin, id(robotomedium15), COLOR_OFF, TextAlign::TOP_RIGHT, "\U000F0764");
-            it.printf(iconWidthHalf-iconLeftRightMargin, (it.get_height()/2)-iconTopMargin, id(robotomedium15), COLOR_OFF, TextAlign::TOP_LEFT, "\U000F0764");
-          }
-
-          //ha value
-          if ((shouldBlink && rotate_switch_single_value == 1) || rotate_switch_single_value != 1) {
-            if (it.get_width() == 128 && it.get_height() == 128) { //sh1107
-              it.printf((it.get_width()/2), (it.get_height()/2), id(robotomedium40), TextAlign::CENTER, "%i", (int)ha_value);
-            }
-            else {
-              it.printf((it.get_width()/2), it.get_height()+fontMarginBottomCorrection, id(robotomedium40), TextAlign::BOTTOM_CENTER, "%i", (int)ha_value);
-            }
-          }
-
-          //ha enabled
-          if (id(ha_1_enabled).state) {
-            it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0C52");
-          }
-          else {
-            it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0131");
-          }
-
-          //ha alarmed
-          it.get_text_bounds(0, 0, displayString.c_str(), id(robotomedium20), TextAlign::TOP_CENTER, &calculated_x, &calculated_y, &calculated_width, &calculated_height); //calculate icon dimensions
-          if (id(ha_1_alarmed).state) {
-            it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0021");
-          }
-          else {
-            it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0023");
-          }
-
+          render_ha_page(
+            it,
+            "HA 1",
+            id(ha_1_pre_minute).state,
+            id(ha_1_enabled).state,
+            id(ha_1_alarmed).state,
+            id(rotate_switch_single),
+            true,
+            false,
+            true,
+            true,
+            id(robotomedium40),
+            id(robotomedium30),
+            id(robotomedium20),
+            id(robotomedium15)
+          );
           id(current_page_id) = 4;
       - id: page5 #HA 2 page
         lambda: |-
-          struct timeval tv;
-          gettimeofday(&tv, NULL);
-          int shouldBlink = 0;
-          if (tv.tv_usec >= 500000) { //every 0.5 second
-            shouldBlink = 1;
-          }
-          int ha_value = id(ha_2_pre_minute).state;
-          int rotate_switch_single_value = id(rotate_switch_single);
-
-          it.printf(it.get_width()/2, 0, id(robotomedium20), TextAlign::TOP_CENTER, "HA 2");
-
-          //the font will be placed too high by default
-          int fontMarginBottomCorrection = 10;
-
-          int calculated_width;
-          int calculated_height;
-          int calculated_x;
-          int calculated_y;
-          std::string displayString = "\U000F07D0";
-          it.get_text_bounds(0, 0, displayString.c_str(), id(robotomedium30), TextAlign::TOP_CENTER, &calculated_x, &calculated_y, &calculated_width, &calculated_height); //calculate icon dimensions
-          int iconWidthHalf = calculated_width/2;
-
-          //ha icon
-          it.printf(iconWidthHalf, it.get_height()/2, id(robotomedium20), TextAlign::CENTER, "\U000F07D0");
-
-          int iconLeftRightMargin = 2;
-          int iconTopMargin = 4;
-          int iconBottomMargin = 3;
-
-          //ha icon hide
-          if (shouldBlink) {
-            it.printf(iconWidthHalf+iconLeftRightMargin, (it.get_height()/2)+iconBottomMargin, id(robotomedium15), COLOR_OFF, TextAlign::BOTTOM_RIGHT, "\U000F0764");
-            //it.printf(iconWidthHalf-iconLeftRightMargin, (it.get_height()/2)+iconBottomMargin, id(robotomedium15), COLOR_OFF, TextAlign::BOTTOM_LEFT, "\U000F0764");
-            it.printf(iconWidthHalf+iconLeftRightMargin, (it.get_height()/2)-iconTopMargin, id(robotomedium15), COLOR_OFF, TextAlign::TOP_RIGHT, "\U000F0764");
-            it.printf(iconWidthHalf-iconLeftRightMargin, (it.get_height()/2)-iconTopMargin, id(robotomedium15), COLOR_OFF, TextAlign::TOP_LEFT, "\U000F0764");
-          }
-
-          //ha value
-          if ((shouldBlink && rotate_switch_single_value == 1) || rotate_switch_single_value != 1) {
-            if (it.get_width() == 128 && it.get_height() == 128) { //sh1107
-              it.printf((it.get_width()/2), (it.get_height()/2), id(robotomedium40), TextAlign::CENTER, "%i", (int)ha_value);
-            }
-            else {
-              it.printf((it.get_width()/2), it.get_height()+fontMarginBottomCorrection, id(robotomedium40), TextAlign::BOTTOM_CENTER, "%i", (int)ha_value);
-            }
-          }
-
-          //ha enabled
-          if (id(ha_2_enabled).state) {
-            it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0C52");
-          }
-          else {
-            it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0131");
-          }
-
-          //ha alarmed
-          it.get_text_bounds(0, 0, displayString.c_str(), id(robotomedium20), TextAlign::TOP_CENTER, &calculated_x, &calculated_y, &calculated_width, &calculated_height); //calculate icon dimensions
-          if (id(ha_2_alarmed).state) {
-            it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0021");
-          }
-          else {
-            it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0023");
-          }
-
+          render_ha_page(
+            it,
+            "HA 2",
+            id(ha_2_pre_minute).state,
+            id(ha_2_enabled).state,
+            id(ha_2_alarmed).state,
+            id(rotate_switch_single),
+            false,
+            true,
+            true,
+            true,
+            id(robotomedium40),
+            id(robotomedium30),
+            id(robotomedium20),
+            id(robotomedium15)
+          );
           id(current_page_id) = 5;
       - id: page6 #HA 3 page
         lambda: |-
-          struct timeval tv;
-          gettimeofday(&tv, NULL);
-          int shouldBlink = 0;
-          if (tv.tv_usec >= 500000) { //every 0.5 second
-            shouldBlink = 1;
-          }
-          int ha_value = id(ha_3_pre_minute).state;
-          int rotate_switch_single_value = id(rotate_switch_single);
-
-          it.printf(it.get_width()/2, 0, id(robotomedium20), TextAlign::TOP_CENTER, "HA 3");
-
-          //the font will be placed too high by default
-          int fontMarginBottomCorrection = 10;
-
-          int calculated_width;
-          int calculated_height;
-          int calculated_x;
-          int calculated_y;
-          std::string displayString = "\U000F07D0";
-          it.get_text_bounds(0, 0, displayString.c_str(), id(robotomedium30), TextAlign::TOP_CENTER, &calculated_x, &calculated_y, &calculated_width, &calculated_height); //calculate icon dimensions
-          int iconWidthHalf = calculated_width/2;
-
-          //ha icon
-          it.printf(iconWidthHalf, it.get_height()/2, id(robotomedium20), TextAlign::CENTER, "\U000F07D0");
-
-          int iconLeftRightMargin = 2;
-          int iconTopMargin = 4;
-          int iconBottomMargin = 3;
-
-          //ha icon hide
-          if (shouldBlink) {
-            it.printf(iconWidthHalf+iconLeftRightMargin, (it.get_height()/2)+iconBottomMargin, id(robotomedium15), COLOR_OFF, TextAlign::BOTTOM_RIGHT, "\U000F0764");
-            it.printf(iconWidthHalf-iconLeftRightMargin, (it.get_height()/2)+iconBottomMargin, id(robotomedium15), COLOR_OFF, TextAlign::BOTTOM_LEFT, "\U000F0764");
-            //it.printf(iconWidthHalf+iconLeftRightMargin, (it.get_height()/2)-iconTopMargin, id(robotomedium15), COLOR_OFF, TextAlign::TOP_RIGHT, "\U000F0764");
-            it.printf(iconWidthHalf-iconLeftRightMargin, (it.get_height()/2)-iconTopMargin, id(robotomedium15), COLOR_OFF, TextAlign::TOP_LEFT, "\U000F0764");
-          }
-
-          //ha value
-          if ((shouldBlink && rotate_switch_single_value == 1) || rotate_switch_single_value != 1) {
-            if (it.get_width() == 128 && it.get_height() == 128) { //sh1107
-              it.printf((it.get_width()/2), (it.get_height()/2), id(robotomedium40), TextAlign::CENTER, "%i", (int)ha_value);
-            }
-            else {
-              it.printf((it.get_width()/2), it.get_height()+fontMarginBottomCorrection, id(robotomedium40), TextAlign::BOTTOM_CENTER, "%i", (int)ha_value);
-            }
-          }
-
-          //ha enabled
-          if (id(ha_3_enabled).state) {
-            it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0C52");
-          }
-          else {
-            it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0131");
-          }
-
-          //ha alarmed
-          it.get_text_bounds(0, 0, displayString.c_str(), id(robotomedium20), TextAlign::TOP_CENTER, &calculated_x, &calculated_y, &calculated_width, &calculated_height); //calculate icon dimensions
-          if (id(ha_3_alarmed).state) {
-            it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0021");
-          }
-          else {
-            it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0023");
-          }
-
+          render_ha_page(
+            it,
+            "HA 3",
+            id(ha_3_pre_minute).state,
+            id(ha_3_enabled).state,
+            id(ha_3_alarmed).state,
+            id(rotate_switch_single),
+            true,
+            true,
+            true,
+            false,
+            id(robotomedium40),
+            id(robotomedium30),
+            id(robotomedium20),
+            id(robotomedium15)
+          );
           id(current_page_id) = 6;
       - id: page7 #HA 4 page
         lambda: |-
-          struct timeval tv;
-          gettimeofday(&tv, NULL);
-          int shouldBlink = 0;
-          if (tv.tv_usec >= 500000) { //every 0.5 second
-            shouldBlink = 1;
-          }
-          int ha_value = id(ha_4_pre_minute).state;
-          int rotate_switch_single_value = id(rotate_switch_single);
-
-          it.printf(it.get_width()/2, 0, id(robotomedium20), TextAlign::TOP_CENTER, "HA 4");
-
-          //the font will be placed too high by default
-          int fontMarginBottomCorrection = 10;
-
-          int calculated_width;
-          int calculated_height;
-          int calculated_x;
-          int calculated_y;
-          std::string displayString = "\U000F07D0";
-          it.get_text_bounds(0, 0, displayString.c_str(), id(robotomedium30), TextAlign::TOP_CENTER, &calculated_x, &calculated_y, &calculated_width, &calculated_height); //calculate icon dimensions
-          int iconWidthHalf = calculated_width/2;
-
-          //ha icon
-          it.printf(iconWidthHalf, it.get_height()/2, id(robotomedium20), TextAlign::CENTER, "\U000F07D0");
-
-          int iconLeftRightMargin = 2;
-          int iconTopMargin = 4;
-          int iconBottomMargin = 3;
-
-          //ha icon hide
-          if (shouldBlink) {
-            it.printf(iconWidthHalf+iconLeftRightMargin, (it.get_height()/2)+iconBottomMargin, id(robotomedium15), COLOR_OFF, TextAlign::BOTTOM_RIGHT, "\U000F0764");
-            it.printf(iconWidthHalf-iconLeftRightMargin, (it.get_height()/2)+iconBottomMargin, id(robotomedium15), COLOR_OFF, TextAlign::BOTTOM_LEFT, "\U000F0764");
-            it.printf(iconWidthHalf+iconLeftRightMargin, (it.get_height()/2)-iconTopMargin, id(robotomedium15), COLOR_OFF, TextAlign::TOP_RIGHT, "\U000F0764");
-            //it.printf(iconWidthHalf-iconLeftRightMargin, (it.get_height()/2)-iconTopMargin, id(robotomedium15), COLOR_OFF, TextAlign::TOP_LEFT, "\U000F0764");
-          }
-
-          //ha value
-          if ((shouldBlink && rotate_switch_single_value == 1) || rotate_switch_single_value != 1) {
-            if (it.get_width() == 128 && it.get_height() == 128) { //sh1107
-              it.printf((it.get_width()/2), (it.get_height()/2), id(robotomedium40), TextAlign::CENTER, "%i", (int)ha_value);
-            }
-            else {
-              it.printf((it.get_width()/2), it.get_height()+fontMarginBottomCorrection, id(robotomedium40), TextAlign::BOTTOM_CENTER, "%i", (int)ha_value);
-            }
-          }
-
-          //ha enabled
-          if (id(ha_4_enabled).state) {
-            it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0C52");
-          }
-          else {
-            it.printf(it.get_width(), (it.get_height()/2), id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0131");
-          }
-
-          //ha alarmed
-          it.get_text_bounds(0, 0, displayString.c_str(), id(robotomedium20), TextAlign::TOP_CENTER, &calculated_x, &calculated_y, &calculated_width, &calculated_height); //calculate icon dimensions
-          if (id(ha_4_alarmed).state) {
-            it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0021");
-          }
-          else {
-            it.printf(it.get_width(), (it.get_height()/2)+calculated_height, id(robotomedium20), TextAlign::CENTER_RIGHT, "\U000F0023");
-          }
-
+          render_ha_page(
+            it,
+            "HA 4",
+            id(ha_4_pre_minute).state,
+            id(ha_4_enabled).state,
+            id(ha_4_alarmed).state,
+            id(rotate_switch_single),
+            true,
+            true,
+            false,
+            true,
+            id(robotomedium40),
+            id(robotomedium30),
+            id(robotomedium20),
+            id(robotomedium15)
+          );
           id(current_page_id) = 7;
       - id: page8 #Sleep timer
         lambda: |-
@@ -2055,6 +1917,17 @@ display:
           if (tv.tv_usec >= 500000) { //every 0.5 second
             shouldBlink = 1;
           }
+
+          std::string language = "${language}";
+          std::string topText = "Sleep timer";
+          if (language == "NL") {
+            topText = "Slaap timer";
+          }
+          else if (language == "DE") {
+            topText = "Schlaf timer";
+          }
+          it.printf(it.get_width()/2, 0, id(robotomedium20), TextAlign::TOP_CENTER, topText.c_str());
+
           int sleep_timer_duration_value = id(sleep_timer_duration).state;
           int rotate_switch_single_value = id(rotate_switch_single);
 
@@ -2272,7 +2145,7 @@ script:
                                   auto call = id(alarm_on_local_after_seconds).make_call();
                                   call.set_value(alarmOnLocalAfterSeconds);
                                   call.perform();
-                                  ESP_LOGD("rotary_encoder_script", "%s setting alarm_on_local_after_seconds to %i", rotation.c_str(), alarm_on_local_after_seconds);
+                                  ESP_LOGD("rotary_encoder_script", "%s setting alarm_on_local_after_seconds to %i", rotation.c_str(), alarmOnLocalAfterSeconds);
                                 }
                               }
                               else if (current_page_id_value == 3) { //update alarm volume
@@ -2740,7 +2613,7 @@ script:
           //get the timestamp
           int currentTimeForAlarmTimeStamp = currentTimeForAlarm;
 
-          if (!id(alarm_on).state && id(alarm_enabled).state || id(alarm_on).state) {
+          if ((!id(alarm_on).state && id(alarm_enabled).state) || id(alarm_on).state) {
             //get the midnight of today
             time_t currentTimeForAlarmMidnight = currentTimeForAlarm; //second 0 of the current minute
             int secondsFromMidnight = (iCurrentHour * 60 * 60) + (iCurrentMinute * 60) + iCurrentSecond;
@@ -2770,9 +2643,9 @@ script:
                 esphome::ESPTime eAlarmOffLocalTimeStamp = id(alarm_off_local_timestamp).state_as_esptime();
                 int iAlarmOffLocalTimeStamp = eAlarmOffLocalTimeStamp.timestamp;
 
-                ESP_LOGD("check_alarms", "alarm_on_local_after_seconds %i iAlarmTimeStamp %i iAlarmOffLocalTimeStamp %i", id(alarm_on_local_after_seconds).state, iAlarmTimeStamp, iAlarmOffLocalTimeStamp);
+                ESP_LOGD("check_alarms", "alarm_on_local_after_seconds %.0f iAlarmTimeStamp %i iAlarmOffLocalTimeStamp %i", id(alarm_on_local_after_seconds).state, iAlarmTimeStamp, iAlarmOffLocalTimeStamp);
                 if (alarmDuration > id(alarm_on_local_after_seconds).state && iAlarmOffLocalTimeStamp < iAlarmTimeStamp) {
-                  ESP_LOGD("check_alarms", "Alarm duration of %i is longer then %i seconds of alarm_on_local_after_seconds", alarmDuration, id(alarm_on_local_after_seconds).state);
+                  ESP_LOGD("check_alarms", "Alarm duration of %i is longer then %.0f seconds of alarm_on_local_after_seconds", alarmDuration, id(alarm_on_local_after_seconds).state);
                   id(alarm_on_local).turn_on();
                 }
                 else {
@@ -2783,25 +2656,25 @@ script:
           }
 
           if (iCurrentHour == id(ha_1_time).hour && iCurrentMinute == id(ha_1_time).minute && id(ha_1_enabled).state) {
-            if (id(alarm_enabled).state && id(ha_1_alarmed).state || !id(ha_1_alarmed).state) {
+            if ((id(alarm_enabled).state && id(ha_1_alarmed).state) || !id(ha_1_alarmed).state) {
               id(ha_1_on).turn_on();
               ESP_LOGD("check_alarms", "ha 1 on");
             }
           }
           if (iCurrentHour == id(ha_2_time).hour && iCurrentMinute == id(ha_2_time).minute && id(ha_2_enabled).state) {
-            if (id(alarm_enabled).state && id(ha_2_alarmed).state || !id(ha_2_alarmed).state) {
+            if ((id(alarm_enabled).state && id(ha_2_alarmed).state) || !id(ha_2_alarmed).state) {
               id(ha_2_on).turn_on();
               ESP_LOGD("check_alarms", "ha 2 on");
             }
           }
           if (iCurrentHour == id(ha_3_time).hour && iCurrentMinute == id(ha_3_time).minute && id(ha_3_enabled).state) {
-            if (id(alarm_enabled).state && id(ha_3_alarmed).state || !id(ha_3_alarmed).state) {
+            if ((id(alarm_enabled).state && id(ha_3_alarmed).state) || !id(ha_3_alarmed).state) {
               id(ha_3_on).turn_on();
               ESP_LOGD("check_alarms", "ha 3 on");
             }
           }
           if (iCurrentHour == id(ha_4_time).hour && iCurrentMinute == id(ha_4_time).minute && id(ha_4_enabled).state) {
-            if (id(alarm_enabled).state && id(ha_4_alarmed).state || !id(ha_4_alarmed).state) {
+            if ((id(alarm_enabled).state && id(ha_4_alarmed).state) || !id(ha_4_alarmed).state) {
               id(ha_4_on).turn_on();
               ESP_LOGD("check_alarms", "ha 4 on");
             }
@@ -2927,7 +2800,7 @@ script:
               id(time_sync_done) = true;
             }
             else {
-              ESP_LOGD("time_sync_wait", "Time not synced, waiting %i", now);
+              ESP_LOGD("time_sync_wait", "Time not synced, waiting %i", (int)now);
               id(time_sync_wait).execute();
             }
           }

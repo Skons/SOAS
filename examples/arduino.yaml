@@ -19,6 +19,7 @@ substitutions:
   top_button_long_press_enabled: "true"
   top_button_triple_press_enabled: "true"
   top_button_double_press_enabled: "true"
+  play_on_switch_enabled: "true"
   timezone: Europe/Amsterdam
 
 packages:
