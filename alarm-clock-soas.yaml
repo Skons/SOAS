@@ -901,8 +901,8 @@ select:
             lambda: 'return ${play_on_switch_enabled};'
           then:
             - script.execute:
-              id: play_url
-              from_cache: false
+                id: play_url
+                from_cache: false
     internal: true
   - name: Alarm stream name
     platform: template
@@ -1625,7 +1625,7 @@ display:
             topText = "Alarm Instell";
           }
           else if (language == "DE") {
-            topText = "Alarm Einstel";
+            topText = "Alarm Einst.";
           }
           if (rotate_switch_single_value == 1) {
             topText = "Alarm Hour";
@@ -1651,7 +1651,7 @@ display:
               topText = "Lokaal on";
             }
             else if (language == "DE") {
-              topText = "Lokale eins";
+              topText = "Lokal ein";
             }
           }
 
@@ -1732,7 +1732,7 @@ display:
 
           std::string topText = "Alarm Volume";
           if (language == "DE") {
-            topText = "Alarm Lautstärke";
+            topText = "Alarm Lautst.";
           }
           if (rotate_switch_single_value == 3) {
             topText = "Start";
@@ -2007,6 +2007,8 @@ display:
       - id: page11 #Restart page
         lambda: |-
           it.printf(it.get_width()/2, 0, id(robotomedium20), TextAlign::TOP_CENTER, "Restart?");
+          it.printf(it.get_width()/2, 20, id(robotothin15), TextAlign::TOP_CENTER, "Version:");
+          it.printf(it.get_width()/2, 35, id(robotothin15), TextAlign::TOP_CENTER, id(soas_version).state.c_str());
           if (id(rotate_switch_single) == 0) { // check active
             it.printf(it.get_width()/2, it.get_height(), id(robotomedium40), TextAlign::BOTTOM_RIGHT, "\U000F0C52");
             it.printf(it.get_width()/2, it.get_height(), id(robotomedium40), TextAlign::BOTTOM_LEFT, "\U000F0157");
