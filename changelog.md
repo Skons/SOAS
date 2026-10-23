@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026.9.2.1
+## 2026.10.23.1
 - **BREAKING** `play_on_switch_enabled` is added. Thanks @becast
 - All pages now have a title and description if needed
 - Simplified the HA pages
