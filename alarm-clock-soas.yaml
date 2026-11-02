@@ -1352,6 +1352,12 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
 
+audio:
+  codecs: #decoders for http(s) streams, only the codecs in use are built in
+    mp3:
+    flac:
+    wav:
+
 audio_file:
   - id: alarm_sound
     file: ${alarm_file}
