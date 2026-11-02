@@ -1352,12 +1352,6 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
 
-audio:
-  codecs: #decoders for http(s) streams, only the codecs in use are built in
-    mp3:
-    flac:
-    wav:
-
 audio_file:
   - id: alarm_sound
     file: ${alarm_file}
@@ -1418,7 +1412,7 @@ media_player:
     name: Media player alarm
     media_pipeline:
       speaker: media_spk_resampling_input
-      format: FLAC
+      format: NONE
       num_channels: 2
       sample_rate: 48000
       sources:
@@ -1427,7 +1421,7 @@ media_player:
         - http_media_source
     announcement_pipeline:
       speaker: announcement_spk_resampling_input
-      format: FLAC
+      format: NONE
       num_channels: 1
       sample_rate: 48000
       sources:
