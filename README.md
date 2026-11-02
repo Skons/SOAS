@@ -12,9 +12,8 @@
 * [Requirements](#Requirements)
 * [Optional](#Optional)
 * [Installation](#Installation)
+	* [Music Assistant](#MusicAssistant)
 	* [Modules](#Modules)
-		* [Url (Required, or Music Assistant)](#UrlRequiredorMusicAssistant)
-		* [Music Assistant (Required, or Url)](#MusicAssistantRequiredorUrl)
 		* [GPS (Optional)](#GPSOptional)
 		* [DS1307 (Optional)](#DS1307Optional)
 		* [GL5516 brightness sensor (Optional)](#GL5516brightnesssensorOptional)
@@ -176,17 +175,19 @@ substitutions:
   top_button_triple_press_enabled: "true" #Set to false to disable triple press on the top button
   top_button_double_press_enabled: "true" #Set to false to disable double press on the top button
   play_on_switch_enabled: "true" #Set to false to disable the automatic start of the music when switching alarms
+  ma_player_entity: "media_player.alarm_clock_soas" #Only needed for Music Assistant, the entity id of this clock in Music Assistant
+  ma_enqueue: "replace" #Only needed for Music Assistant, how it enqueues the media: play, replace, next, replace_next or add
   timezone: Europe/Amsterdam
 
 packages:
   remote_package_files:
     url: https://github.com/skons/soas
-    files: [alarm-clock-soas.yaml, alarm-clock-url.yaml] #alarm-clock-url.yaml or alarm-clock-music-assistant.yaml is required, review the modules section!
+    files: [alarm-clock-soas.yaml] #Review the modules section!
 
 esp32:
   board: esp32-s3-devkitc-1
   framework:
-    type: esp-idf #or arduino
+    type: esp-idf #arduino is not supported
   flash_size: 16MB
 
 time:
@@ -226,40 +227,25 @@ Save the `fonts` folder into your ESPHome folder. The folder needs to be placed 
 
 Edit the `select` options with a stream URL and the name of the stream. To get some streams, install [radio browser](https://www.home-assistant.io/integrations/radio_browser/). Select a stream, send it to the clock and look at the ESPHome logging to view the URL of that stream.
 
-Edit `alarm_file` to have your own local alarm. You can use mp3, wav or a flac file.
+Edit `alarm_file` to have your own local alarm. Use a wav file, for example mono 22050 Hz 16 bit (`ffmpeg -i sound.mp3 -ac 1 -ar 22050 -c:a pcm_s16le sound.wav`). Flac and mp3 files sound choppy with the media player.
 
-### <a name='Modules'></a>Modules
+### <a name='MusicAssistant'></a>Music Assistant
 
-One media module is required: `alarm-clock-url.yaml` or `alarm-clock-music-assistant.yaml`. Without one of them the configuration fails with errors about `media_player`, and both at the same time is not possible.
+SOAS is also a Sendspin player, so Music Assistant discovers it like any other speaker in the house and it can join groups. Every option in the `alarm_stream_url` select is one of:
+* An `http://` or `https://` stream url, which SOAS plays itself. This works without Home Assistant, for example when SOAS is used as a travel clock.
+* A Music Assistant uri, like `library://radio/2`, `library://playlist/1000`, `library://album/1732` or `library://track/7415`. SOAS asks Home Assistant to run `music_assistant.play_media` with the uri on `ma_player_entity`, and Music Assistant streams it back over Sendspin. When Home Assistant can not be reached, or the stream does not start within about 40 seconds, the local alarm file is played instead.
+* `Local`, the local alarm file.
 
-#### <a name='UrlRequiredorMusicAssistant'></a>Url (Required, or Music Assistant)
+Stream urls and Music Assistant uris can be mixed in the same select.
 
-Alarms and music are played from stream urls in the `alarm_stream_url` select, as shown in the installation example. Works with esp-idf and arduino.
-
-Add `alarm-clock-url.yaml` to the `files:` property of `packages`.
-
-#### <a name='MusicAssistantRequiredorUrl'></a>Music Assistant (Required, or Url)
-
-SOAS becomes a Sendspin player, so Music Assistant discovers it like any other speaker in the house and it can join groups. Alarms and music are Music Assistant uris instead of stream urls. When the alarm goes off, or music is switched on, SOAS asks Home Assistant to run `music_assistant.play_media` with the selected uri on `ma_player_entity`, and Music Assistant streams it back over Sendspin. When Home Assistant can not be reached, or the stream does not start within about 40 seconds, the local alarm file is played instead.
-
-This module requires the esp-idf framework. See [examples/music-assistant.yaml](examples/music-assistant.yaml) for a full configuration.
-
-Setup:
+To use Music Assistant uris:
 1. In Home Assistant, open Settings > Devices & services > ESPHome, select the clock, open its options and enable **Allow the device to perform Home Assistant actions**.
 2. After the first boot, look up the entity id of the clock in Music Assistant (Settings > Entities, search for the clock name) and set it as `ma_player_entity` in the substitutions.
-3. Put the Music Assistant uris in the `alarm_stream_url` select, for example `library://radio/2`, `library://playlist/1000`, `library://album/1732` or `library://track/7415`, and a friendly name for each in `alarm_stream_name`, in the same order. `Local` still plays the local file.
-
-```yaml
-substitutions:
-  ma_player_entity: "media_player.alarm_clock_soas" #entity id of this clock in Music Assistant
-  ma_enqueue: "replace" #how Music Assistant enqueues the media: play, replace, next, replace_next or add
-```
-
-Use a wav file as `alarm_file`, for example mono 22050 Hz 16 bit (`ffmpeg -i sound.mp3 -ac 1 -ar 22050 -c:a pcm_s16le sound.wav`). Flac and mp3 files sound choppy with this media player.
+3. Add the uris to the `alarm_stream_url` select and a friendly name for each to `alarm_stream_name`, in the same order.
 
 A playlist set to shuffle in Music Assistant starts every alarm with a random song.
 
-Add `alarm-clock-music-assistant.yaml` to the `files:` property of `packages`.
+### <a name='Modules'></a>Modules
 
 #### <a name='GPSOptional'></a>GPS (Optional)
 
