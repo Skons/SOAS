@@ -1449,8 +1449,11 @@ media_player:
     on_idle:
       - logger.log: "Playback finished!"
       - lambda: |-
-          //a local stop sets Sendspin to EXTERNAL_SOURCE, clear it so Music Assistant can push to the clock again (browser, groups)
+          //before ESPHome 2026.10 a local stop sets Sendspin to EXTERNAL_SOURCE, clear it so Music Assistant can push to the clock again (browser, groups)
+          //from 2026.10 a local stop leaves the Sendspin group instead, and this is not needed
+          #if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 10, 0)
           id(sendspin_hub).update_state(sendspin::SendspinClientState::SYNCHRONIZED);
+          #endif
     on_turn_off:
       - logger.log: "Playback turned off!"
 
@@ -2834,8 +2837,10 @@ script:
                         api.connected:
                       then:
                         - lambda: |-
-                            //a local stop sets Sendspin to EXTERNAL_SOURCE, Music Assistant will not stream to us until that is cleared
+                            //before ESPHome 2026.10 a local stop sets Sendspin to EXTERNAL_SOURCE, Music Assistant will not stream to us until that is cleared
+                            #if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 10, 0)
                             id(sendspin_hub).update_state(sendspin::SendspinClientState::SYNCHRONIZED);
+                            #endif
                         - homeassistant.action:
                             action: music_assistant.play_media
                             data:
