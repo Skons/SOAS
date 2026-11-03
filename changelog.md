@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+- **BREAKING** The arduino framework is not supported anymore, use esp-idf
+- **BREAKING** Use a wav file as `alarm_file`, flac and mp3 files sound choppy with the new media player
+- Added Music Assistant: SOAS is a Sendspin player, and `alarm_stream_url` options can be Music Assistant uris next to stream urls. Thanks @randellmatt
+- Stream urls are still played by SOAS itself, without Home Assistant
+- An alarm that fires while an earlier snooze is still on can be snoozed again
+
 ## 2026.10.23.1
 - **BREAKING** `play_on_switch_enabled` is added. Thanks @becast
 - All pages now have a title and description if needed
