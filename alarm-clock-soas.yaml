@@ -1,3 +1,7 @@
+substitutions:
+  ma_player_entity: "media_player.alarm_clock_soas" #entity id of this clock in Music Assistant (the Sendspin player)
+  ma_enqueue: "replace" #play, replace, next, replace_next or add
+
 esphome:
   includes:
     - page_utils.h
@@ -9,15 +13,15 @@ esphome:
       then: #booting done
         - lambda: |-
             id(boot_done) = true;
-            id(soas_version).publish_state("2026.10.23.1");
+            id(soas_version).publish_state("2026.11.12.1");
 
 logger:
   on_message:
     level: ERROR
     then:
       - lambda: |-
-          //catch error thrown by speaker_media_player, works on esp idf based builds only
-          if (strcmp(tag, "speaker_media_player") == 0 && id(media_player_alarm).state == 2 && (id(alarm_on).state || id(music_on).state)) { //MEDIA_PLAYER_STATE_NONE = 0 , MEDIA_PLAYER_STATE_IDLE = 1 , MEDIA_PLAYER_STATE_PLAYING = 2 , MEDIA_PLAYER_STATE_PAUSED = 3 ,  MEDIA_PLAYER_STATE_ANNOUNCING = 4
+          //catch error thrown by speaker_source_media_player, works on esp idf based builds only
+          if (strcmp(tag, "speaker_source_media_player") == 0 && id(media_player_alarm).state == 2 && (id(alarm_on).state || id(music_on).state)) { //MEDIA_PLAYER_STATE_NONE = 0 , MEDIA_PLAYER_STATE_IDLE = 1 , MEDIA_PLAYER_STATE_PLAYING = 2 , MEDIA_PLAYER_STATE_PAUSED = 3 ,  MEDIA_PLAYER_STATE_ANNOUNCING = 4
             id(media_player_stopped) = id(media_player_stopped) + 1;
             int maxCounter = 4;
             if (id(media_player_stopped) > maxCounter) {
@@ -31,7 +35,7 @@ logger:
               }
             }
           }
-          else if (strcmp(tag, "speaker_media_player") == 0 && id(media_player_alarm).state == 4 && id(alarm_on).state) { //error on announcement
+          else if (strcmp(tag, "speaker_source_media_player") == 0 && id(media_player_alarm).state == 4 && id(alarm_on).state) { //error on announcement
             //id(debug_logger).publish_state("announcing Level: " + to_string(level) + ". Tag: " + tag + ". Message:" + message);
           }
 
@@ -176,6 +180,16 @@ globals:
     type: std::string
     initial_value: '""'
     restore_value: yes
+
+  - id: ma_request_timestamp
+    type: int
+    initial_value: '0'
+  - id: music_from_outside #music was started from outside the clock (Music Assistant or Home Assistant), not by the clock
+    type: bool
+    initial_value: 'false'
+  - id: media_is_stream #the selected media is an http(s) stream that the clock plays itself, not Music Assistant
+    type: bool
+    initial_value: 'false'
 
 interval:
   - interval: 10s
@@ -645,6 +659,9 @@ binary_sensor:
               } else {
                 if (id(alarm_on).state) {
                   ESP_LOGD("alarm_off", "single click snooze on");
+                  if (id(snooze_on).state) { //an earlier snooze is still running, turn_on would not trigger and the alarm keeps sounding
+                    id(snooze_on).turn_off();
+                  }
                   id(snooze_on).turn_on();
                 }
                 else if (id(snooze_on).state) {
@@ -1166,6 +1183,7 @@ switch:
                 condition: #know if the basics are initialized
                   lambda: 'return (id(time_sync_done) == true);'
                 then:
+                  - script.execute: stop_ma
                   - media_player.stop:
                   - media_player.stop:
                       announcement: true
@@ -1191,9 +1209,10 @@ switch:
             condition:
               switch.is_on: alarm_on_local
             then:
-              # Play the alarm sound as an announcement
-              - media_player.speaker.play_on_device_media_file:
-                  media_file: alarm_sound
+              # Play the local alarm sound, this also takes over from a stream
+              - media_player.play_media:
+                  id: media_player_alarm
+                  media_url: "audio-file://alarm_sound"
               # Wait until the alarm sound starts playing
               - wait_until:
                   media_player.is_playing:
@@ -1243,6 +1262,7 @@ switch:
             switch.is_off: alarm_on
           then:
             - switch.turn_off: alarm_on_local
+            - script.execute: stop_ma
             - media_player.stop:
             - media_player.stop:
                 announcement: true
@@ -1332,37 +1352,84 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
 
+audio_file:
+  - id: alarm_sound
+    file: ${alarm_file}
+
+sendspin:
+  id: sendspin_hub
+  task_stack_in_psram: true
+
+media_source:
+  - platform: sendspin #Music Assistant streams to this source
+    id: sendspin_media_source
+    sample_rate: 48000
+  - platform: audio_file #local alarm sound, fallback when a stream or Music Assistant is not available
+    id: local_file_media_source
+  - platform: audio_http #http(s) stream urls, played by the clock itself without Home Assistant
+    id: http_media_source
+    buffer_size: 250000
+  - platform: audio_http #Home Assistant announcements, like TTS
+    id: http_announcement_source
+    buffer_size: 250000
+
 speaker:
   - id: speaker_id
     platform: i2s_audio
     dac_type: external
     i2s_dout_pin: ${i2s_dout_pin}
     sample_rate: 48000
+    bits_per_sample: 16bit
+    channel: stereo
+    timeout: never
+    buffer_duration: 500ms
   - id: mixer_speaker_id
     platform: mixer
     output_speaker: speaker_id
+    num_channels: 2
+    task_stack_in_psram: true
     source_speakers:
       - id: announcement_spk_mixer_input
+        timeout: never
       - id: media_spk_mixer_input
+        timeout: never
   - id: media_spk_resampling_input
     platform: resampler
     output_speaker: media_spk_mixer_input
+    sample_rate: 48000
+    bits_per_sample: 16
+    task_stack_in_psram: true
   - id: announcement_spk_resampling_input
     platform: resampler
     output_speaker: announcement_spk_mixer_input
+    sample_rate: 48000
+    bits_per_sample: 16
+    task_stack_in_psram: true
 
 media_player:
   - id: media_player_alarm
-    platform: speaker
+    platform: speaker_source
     name: Media player alarm
     media_pipeline:
-        speaker: media_spk_resampling_input
-        num_channels: 1
-        format: NONE
+      speaker: media_spk_resampling_input
+      format: NONE
+      num_channels: 2
+      sample_rate: 48000
+      sources:
+        - sendspin_media_source
+        - local_file_media_source
+        - http_media_source
     announcement_pipeline:
-        speaker: announcement_spk_resampling_input
-        num_channels: 1
-        format: NONE
+      speaker: announcement_spk_resampling_input
+      format: NONE
+      num_channels: 1
+      sample_rate: 48000
+      sources:
+        - http_announcement_source
+    volume_increment: 0.02
+    volume_initial: 0.20
+    volume_min: 0.05
+    volume_max: 0.95
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: media_spk_mixer_input
@@ -1375,15 +1442,18 @@ media_player:
           id: media_spk_mixer_input
           decibel_reduction: 0
           duration: 1.0s
-    files:
-      - id: alarm_sound
-        file: ${alarm_file}
     on_play:
       - logger.log: "Playback started!"
     on_pause:
       - logger.log: "Playback paused!"
     on_idle:
       - logger.log: "Playback finished!"
+      - lambda: |-
+          //before ESPHome 2026.10 a local stop sets Sendspin to EXTERNAL_SOURCE, clear it so Music Assistant can push to the clock again (browser, groups)
+          //from 2026.10 a local stop leaves the Sendspin group instead, and this is not needed
+          #if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 10, 0)
+          id(sendspin_hub).update_state(sendspin::SendspinClientState::SYNCHRONIZED);
+          #endif
     on_turn_off:
       - logger.log: "Playback turned off!"
 
@@ -2703,42 +2773,6 @@ script:
               id(music_on).turn_off();
             }
           }
-  - id: media_player_watchdog
-    mode: single
-    then:
-      - lambda: |-
-          //ESP_LOGD("media_player_watchdog", "Media player state %i", id(media_player_alarm).state);
-          if (!id(time_sync_done) && !id(boot_done)) {
-            //do nothing, time sync and boot needs to be finished
-          }
-          else if (id(media_player_alarm).state == 2 && !id(alarm_on).state && !id(music_on).state) { //MEDIA_PLAYER_STATE_NONE = 0 , MEDIA_PLAYER_STATE_IDLE = 1 , MEDIA_PLAYER_STATE_PLAYING = 2 , MEDIA_PLAYER_STATE_PAUSED = 3 ,  MEDIA_PLAYER_STATE_ANNOUNCING = 4
-            ESP_LOGD("media_player_watchdog", "Media player is playing, alarm_on and music_on are switched off");
-            id(media_player_watchdog_count) = id(media_player_watchdog_count) + 1;
-            if (id(media_player_watchdog_count) > 1) {
-              ESP_LOGD("media_player_watchdog", "Media player is playing, media_player_watchdog_count is %i, enabling music_on", id(media_player_watchdog_count));
-              id(music_on).turn_on();
-            }
-          }
-          else if ((id(media_player_alarm).state == 0 || id(media_player_alarm).state == 1) && (id(alarm_on).state || id(music_on).state)) {
-            ESP_LOGD("media_player_watchdog", "Media player is not playing, alarm_on or music_on are switched on");
-            id(media_player_watchdog_count) = id(media_player_watchdog_count) + 1;
-            if (id(media_player_watchdog_count) < 3) {
-              ESP_LOGD("media_player_watchdog", "Media player should be playing, trying to play the configured url for count %i", id(media_player_watchdog_count));
-              id(play_url).execute(false);
-            }
-            else if (id(alarm_on).state) {
-              ESP_LOGW("media_player_watchdog", "Failed to start stream, enabling alarm_on_local");
-              id(alarm_on_local).turn_on();
-            }
-            else if (id(music_on).state) {
-              ESP_LOGE("media_player_watchdog", "Failed to start stream, switching off music_on");
-              id(music_on).turn_off();
-            }
-          }
-          else if (id(media_player_watchdog_count) != 0) {
-            ESP_LOGD("media_player_watchdog", "Resetting media_player_watchdog_count");
-            id(media_player_watchdog_count) = 0;
-          }
   - id: set_alarm_last_off
     then:
       - lambda: |-
@@ -2762,31 +2796,142 @@ script:
               id(current_volume) = volume;
               ESP_LOGD("set_volume", "newVolume %f newVolumeFloat %f", newVolume, newVolumeFloat);
               return newVolumeFloat;
-  - id: play_url
+  - id: play_url #http(s) urls are played by the clock itself, other uris are asked from Music Assistant and streamed back over Sendspin
     parameters:
       from_cache: bool
     then:
       - lambda: |-
-          auto mediaPlayerCall = id(media_player_alarm).make_call();
-          std::string streamUrl = id(alarm_stream_url).current_option();
-          ESP_LOGD("play_url", "Configured stream url %s", streamUrl.c_str());
-          if (strcmp(streamUrl.c_str(), "Local") == 0) {
-            ESP_LOGD("play_url", "Play local stream url %s", streamUrl.c_str());
+          id(music_from_outside) = false;
+          std::string mediaUri = id(alarm_stream_url).current_option();
+          ESP_LOGD("play_url", "Configured media uri %s", mediaUri.c_str());
+          if (strcmp(mediaUri.c_str(), "Local") == 0) {
+            ESP_LOGD("play_url", "Play local alarm sound");
+            id(media_is_stream) = false;
             id(alarm_on_local).turn_on();
             return;
           }
           if (from_cache) {
-            streamUrl = id(media_url);
-            ESP_LOGD("play_url", "from_cache is true, using cached stream url");
+            mediaUri = id(media_url);
+            ESP_LOGD("play_url", "from_cache is true, using cached media uri");
           }
           else {
-            id(media_url) = streamUrl; //saving url to cache
+            id(media_url) = mediaUri; //saving uri to cache
           }
-          mediaPlayerCall.set_media_url(streamUrl.c_str());
-          mediaPlayerCall.perform();
-          ESP_LOGD("play_url", "Setting stream url %s", streamUrl.c_str());
-
+          id(media_is_stream) = (mediaUri.rfind("http://", 0) == 0 || mediaUri.rfind("https://", 0) == 0);
           id(media_player_stopped) = 0;
+      - if:
+          condition:
+            lambda: 'return (std::string(id(alarm_stream_url).current_option()) != "Local");'
+          then:
+            - if:
+                condition:
+                  lambda: 'return id(media_is_stream);'
+                then: #an http(s) stream, the clock plays it without Home Assistant
+                  - media_player.play_media:
+                      id: media_player_alarm
+                      media_url: !lambda 'return id(media_url);'
+                  - lambda: 'ESP_LOGD("play_url", "Setting stream url %s", id(media_url).c_str());'
+                else: #a Music Assistant uri
+                  - if:
+                      condition:
+                        api.connected:
+                      then:
+                        - lambda: |-
+                            //before ESPHome 2026.10 a local stop sets Sendspin to EXTERNAL_SOURCE, Music Assistant will not stream to us until that is cleared
+                            #if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 10, 0)
+                            id(sendspin_hub).update_state(sendspin::SendspinClientState::SYNCHRONIZED);
+                            #endif
+                        - homeassistant.action:
+                            action: music_assistant.play_media
+                            data:
+                              entity_id: ${ma_player_entity}
+                              enqueue: ${ma_enqueue}
+                            data_template:
+                              media_id: "{{ media_id }}"
+                            variables:
+                              media_id: !lambda 'return id(media_url);'
+                        - lambda: |-
+                            id(ma_request_timestamp) = id(ntp).now().timestamp;
+                            ESP_LOGD("play_url", "Requested %s on ${ma_player_entity}", id(media_url).c_str());
+                      else:
+                        - logger.log:
+                            format: "Home Assistant is not connected, can not reach Music Assistant"
+                            level: WARN
+                        - if:
+                            condition:
+                              switch.is_on: alarm_on
+                            then:
+                              - switch.turn_on: alarm_on_local
+  - id: stop_ma #stop Music Assistant playback on this clock, a local stop only detaches the Sendspin stream
+    then:
+      - if:
+          condition:
+            api.connected:
+          then:
+            - homeassistant.action:
+                action: media_player.media_stop
+                data:
+                  entity_id: ${ma_player_entity}
+  - id: media_player_watchdog
+    mode: single
+    then:
+      - lambda: |-
+          //ESP_LOGD("media_player_watchdog", "Media player state %i", id(media_player_alarm).state);
+          if (!id(time_sync_done) && !id(boot_done)) {
+            //do nothing, time sync and boot needs to be finished
+          }
+          else if (id(media_player_alarm).state == 2 && !id(alarm_on).state && !id(music_on).state) { //MEDIA_PLAYER_STATE_NONE = 0 , MEDIA_PLAYER_STATE_IDLE = 1 , MEDIA_PLAYER_STATE_PLAYING = 2 , MEDIA_PLAYER_STATE_PAUSED = 3 ,  MEDIA_PLAYER_STATE_ANNOUNCING = 4
+            ESP_LOGD("media_player_watchdog", "Media player is playing, alarm_on and music_on are switched off");
+            id(media_player_watchdog_count) = id(media_player_watchdog_count) + 1;
+            if (id(media_player_watchdog_count) > 1) {
+              ESP_LOGD("media_player_watchdog", "Media player is playing, media_player_watchdog_count is %i, enabling music_on", id(media_player_watchdog_count));
+              id(media_player_watchdog_count) = 0;
+              id(music_on).turn_on();
+              id(music_from_outside) = true;
+            }
+          }
+          else if ((id(media_player_alarm).state == 0 || id(media_player_alarm).state == 1) && (id(alarm_on).state || id(music_on).state)) {
+            if (id(alarm_on_local).state) {
+              return; //the local file loop restarts itself, short gaps between plays are expected
+            }
+            ESP_LOGD("media_player_watchdog", "Media player is not playing, alarm_on or music_on are switched on");
+            if (id(music_from_outside) && !id(alarm_on).state) { //Music Assistant goes idle between tracks, only switch off when it stays idle
+              id(media_player_watchdog_count) = id(media_player_watchdog_count) + 1;
+              if (id(media_player_watchdog_count) < 2) {
+                ESP_LOGD("media_player_watchdog", "Playback started from outside is idle, waiting for the next track");
+                return;
+              }
+              ESP_LOGD("media_player_watchdog", "Playback started from outside stopped, switching off music_on");
+              id(music_from_outside) = false;
+              id(music_on).turn_off();
+              return;
+            }
+            if (!id(media_is_stream)) {
+              int secondsSinceRequest = id(ntp).now().timestamp - id(ma_request_timestamp);
+              if (secondsSinceRequest < 20) { //Music Assistant can take a while to start the Sendspin stream, a new request would restart it
+                ESP_LOGD("media_player_watchdog", "Waiting for Music Assistant, requested %i seconds ago", secondsSinceRequest);
+                return;
+              }
+            }
+            id(media_player_watchdog_count) = id(media_player_watchdog_count) + 1;
+            int maxCount = id(media_is_stream) ? 3 : 2; //a stream url is retried twice, Music Assistant once after its longer wait
+            if (id(media_player_watchdog_count) < maxCount) {
+              ESP_LOGD("media_player_watchdog", "Media player should be playing, trying to play the configured media for count %i", id(media_player_watchdog_count));
+              id(play_url).execute(false);
+            }
+            else if (id(alarm_on).state) {
+              ESP_LOGW("media_player_watchdog", "Failed to start stream, enabling alarm_on_local");
+              id(alarm_on_local).turn_on();
+            }
+            else if (id(music_on).state) {
+              ESP_LOGE("media_player_watchdog", "Failed to start stream, switching off music_on");
+              id(music_on).turn_off();
+            }
+          }
+          else if (id(media_player_watchdog_count) != 0) {
+            ESP_LOGD("media_player_watchdog", "Resetting media_player_watchdog_count");
+            id(media_player_watchdog_count) = 0;
+          }
   - id: time_sync_wait #this script calls itself until time is synced. if it was in boot, with delay, this script is all what the device will be doing
     mode: queued
     then:

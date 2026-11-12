@@ -12,6 +12,7 @@
 * [Requirements](#Requirements)
 * [Optional](#Optional)
 * [Installation](#Installation)
+	* [Music Assistant](#MusicAssistant)
 	* [Modules](#Modules)
 		* [GPS (Optional)](#GPSOptional)
 		* [DS1307 (Optional)](#DS1307Optional)
@@ -47,8 +48,9 @@
 * [Home Assistant SOAS version notification](#HomeAssistantSOASversionnotification)
 * [FAQ](#FAQ)
 	* [SH1107 SPI/I2C](#SH1107SPII2C)
+	* [Build error](#Builderror)
 * [Known issues](#Knownissues)
-* [[Changelog](changelog.md)](#Changelogchangelog.md)
+* [Changelog(changelog.md)](#Changelogchangelog.md)
 
 <!-- vscode-markdown-toc-config
 	numbering=false
@@ -88,6 +90,9 @@ This alarm clock is customizable, full featured and smart for under €25,-. It'
 * Local buzzer playback with service and as fallback when internet is not available
 * Contrast based on brightness in the room
 * Local file as fallback when internet is not available
+* Alarms and music from Music Assistant over Sendspin
+  * SOAS plays along with the other speakers in the house
+  * SOAS plays a selected set of songs
 
 ## <a name='Requirements'></a>Requirements
 * < €25,-
@@ -153,10 +158,22 @@ Include the config below in your YAML. This one is made for a `ESP32-S3-N16R8`. 
 
 ```yaml
 substitutions:
-  display_model: "SH1107 128x128" #use "SH1106 128x64" for SH1106
-  display_rotation: "270" #use 0 for SH1106
   sun_latitude: 52.37°
   sun_longitude: 4.89°
+  language: "EN" #NL and DE are also supported
+  alarm_off_button_single_click_time_max: 1s    #max time in seconds, which the alarm off button can be pressed to recognize the press
+  alarm_off_button_single_click_time_min: 0.25s #min time in seconds, which the alarm off button must be pressed to recognize the press
+  top_button_long_press_enabled: "true" #Set to false to disable long press on the top button
+  top_button_triple_press_enabled: "true" #Set to false to disable triple press on the top button
+  top_button_double_press_enabled: "true" #Set to false to disable double press on the top button
+  play_on_switch_enabled: "true" #Set to false to disable the automatic start of the music when switching alarms
+  ma_player_entity: "media_player.alarm_clock_soas" #Only needed for Music Assistant, the entity id of this clock in Music Assistant
+  ma_enqueue: "replace" #Only needed for Music Assistant, how it enqueues the media: play, replace, next, replace_next or add
+  timezone: Europe/Amsterdam
+
+  #edit if you have changed any of thse
+  display_model: "SH1107 128x128" #use "SH1106 128x64" for SH1106
+  display_rotation: "270" #use 0 for SH1106
   i2c_sda: GPIO48
   i2c_scl: GPIO47
   i2s_lrclk_pin: GPIO12
@@ -166,14 +183,6 @@ substitutions:
   pin_b: GPIO10
   alarm_off_button_pin: GPIO4
   rotary_button_pin: GPIO8
-  language: "EN" #NL and DE are also supported
-  alarm_off_button_single_click_time_max: 1s    #max time in seconds, which the alarm off button can be pressed to recognize the press
-  alarm_off_button_single_click_time_min: 0.25s #min time in seconds, which the alarm off button must be pressed to recognize the press
-  top_button_long_press_enabled: "true" #Set to false to disable long press on the top button
-  top_button_triple_press_enabled: "true" #Set to false to disable triple press on the top button
-  top_button_double_press_enabled: "true" #Set to false to disable double press on the top button
-  play_on_switch_enabled: "true" #Set to false to disable the automatic start of the music when switching alarms
-  timezone: Europe/Amsterdam
 
 packages:
   remote_package_files:
@@ -183,7 +192,7 @@ packages:
 esp32:
   board: esp32-s3-devkitc-1
   framework:
-    type: esp-idf #or arduino
+    type: esp-idf #arduino is not supported
   flash_size: 16MB
 
 time:
@@ -199,11 +208,13 @@ select:
     options:
       - "mp3 url to radio" #AAC seams to be making SOAS crash, FLAC or WAV will probably also work
       - "mp3 url to radio #2"
+      - "music assistant playlist"
       - "Local" #By using the name and option Local, you can define the local file as alarm
   - id: !extend alarm_stream_name
     options:
       - "Friendly name of the radio station"
       - "Friendly name of the radio station #2"
+      - "Friendly name of the MA playlist"
       - "Local"
 
 esphome:
@@ -223,7 +234,27 @@ Save the `fonts` folder into your ESPHome folder. The folder needs to be placed 
 
 Edit the `select` options with a stream URL and the name of the stream. To get some streams, install [radio browser](https://www.home-assistant.io/integrations/radio_browser/). Select a stream, send it to the clock and look at the ESPHome logging to view the URL of that stream.
 
-Edit `alarm_file` to have your own local alarm. You can use mp3, wav or a flac file.
+Edit `alarm_file` to have your own local alarm. Use a wav file, for example mono 22050 Hz 16 bit (`ffmpeg -i sound.mp3 -ac 1 -ar 22050 -c:a pcm_s16le sound.wav`). Flac and mp3 files sound choppy with the media player.
+
+### <a name='MusicAssistant'></a>Music Assistant
+
+SOAS is also a Sendspin player, so Music Assistant discovers it like any other speaker in the house and it can join groups. Every option in the `alarm_stream_url` select is one of:
+* An `http://` or `https://` stream url, which SOAS plays itself. This works without Home Assistant, for example when SOAS is used as a travel clock.
+* A Music Assistant uri, like `library://radio/2`, `library://playlist/1000`, `library://album/1732` or `library://track/7415`. SOAS asks Home Assistant to run `music_assistant.play_media` with the uri on `ma_player_entity`, and Music Assistant streams it back over Sendspin. When Home Assistant can not be reached, or the stream does not start within about 40 seconds, the local alarm file is played instead.
+* `Local`, the local alarm file.
+
+Stream urls and Music Assistant uris can be mixed in the same select.
+
+To use Music Assistant uris:
+1. In Home Assistant, open Settings > Devices & services > ESPHome, select the clock, open its options and enable **Allow the device to perform Home Assistant actions**.
+2. After the first boot, look up the entity id of the clock in Music Assistant (Settings > Entities, search for the clock name) and set it as `ma_player_entity` in the substitutions.
+3. Add the uris to the `alarm_stream_url` select and a friendly name for each to `alarm_stream_name`, in the same order.
+
+A playlist is set to shuffle in Music Assistant, so it starts every alarm with a random song.
+
+If you want a Music Assistant playlist, you can get the uri using one of these methods
+1. In Home Assistant go to `Settings -> Tools -> Actions` and run `music_assistant.get_library`, configure the interface to your needs. The response will contain all the values for `uri` that you can use in your ESPHome configuration.
+2. In Music Assistant, go to `Playlists -> [your playlist]`, scroll to the bottom and click on provider details.
 
 ### <a name='Modules'></a>Modules
 
@@ -321,17 +352,6 @@ You can adjust the above values to you liking. I found the above fit my needs (s
 
 Add `alarm-clock-gl5516.yaml` to the `files:` property of `packages`.
 
-##### Usage
-
-###### Test a tune
-
-To test a tune, you can use the HA service "tune" to play directly on the buzzer of the device, like this example:
-
-``` yaml
-action: esphome.soas_tune
-data:
-  tune: Two short tones:d=4,o=5,b=100:16e6,16e6
-```
 
 ## <a name='Usage'></a>Usage
 
@@ -510,9 +530,17 @@ automation:
 
 Some SH1107 display modules support both I2C and SPI interface modes (one mode at a time). To switch to IIC mode, follow [this](https://simple-circuit.com/interfacing-arduino-sh1107-oled-display-i2c-mode/) tutorial and review [this](https://github.com/Skons/SOAS/issues/2#issue-3286014273) post.
 
+### <a name='Builderror'></a>Build error
+
+If this error presents itself:
+
+`error: 'class esphome::sendspin_::SendspinHub' has no member named 'update_state'`
+
+Run `Reset build environment` in ESPHome.
+
 ## <a name='Knownissues'></a>Known issues
-* The ESP-IDF framework seems to be causing frequent crashes (https://github.com/esphome/esphome/issues/10451)
-* The GPS module seems to be causing crashes, even if the ESP-IDF framework does not cause crashes
+* The GPS module seems to be causing crashes
 * A local MP3 file does not play - https://github.com/Skons/SOAS/issues/55#issuecomment-4558008621
+* If your Music Assistant music does not play, clean your build files in ESPHome
 
 ## <a name='Changelogchangelog.md'></a>[Changelog](changelog.md)

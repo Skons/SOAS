@@ -1,8 +1,20 @@
 substitutions:
-  display_model: "SH1107 128x128"
-  display_rotation: "270"
   sun_latitude: 52.37°
   sun_longitude: 4.89°
+  alarm_file: morningjoy.wav
+  language: "NL"
+  alarm_off_button_single_click_time_max: 1s
+  alarm_off_button_single_click_time_min: 0.25s
+  top_button_long_press_enabled: "true"
+  top_button_triple_press_enabled: "true"
+  top_button_double_press_enabled: "true"
+  play_on_switch_enabled: "true"
+  timezone: Europe/Amsterdam
+  ma_player_entity: "media_player.alarm_clock_soas"
+  ma_enqueue: "replace"
+
+  display_model: "SH1107 128x128"
+  display_rotation: "270"
   i2c_sda: GPIO48
   i2c_scl: GPIO47
   i2s_lrclk_pin : GPIO12
@@ -12,15 +24,6 @@ substitutions:
   pin_b: GPIO10
   alarm_off_button_pin: GPIO4
   rotary_button_pin: GPIO8
-  alarm_file: alarm.flac
-  language: "NL"
-  alarm_off_button_single_click_time_max: 1s
-  alarm_off_button_single_click_time_min: 0.25s
-  top_button_long_press_enabled: "true"
-  top_button_triple_press_enabled: "true"
-  top_button_double_press_enabled: "true"
-  play_on_switch_enabled: "true"
-  timezone: Europe/Amsterdam
 
 packages:
   remote_package_files:
@@ -39,9 +42,13 @@ select:
   - id: !extend alarm_stream_url
     options:
       - "http://playerservices.streamtheworld.com/api/livestream-redirect/RADIO538.mp3"
+      - "library://playlist/1"
+      - "Local"
   - id: !extend alarm_stream_name
     options:
       - "538"
+      - "Playlist"
+      - "Local"
 
 esphome:
   name: "alarm-clock-soas"
